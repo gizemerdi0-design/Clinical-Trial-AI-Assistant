@@ -3,6 +3,7 @@ import pdfplumber
 from openai import OpenAI
 import json
 import os
+from io import StringIO
 
 try:
     api_key = st.secrets["OPENAI_API_KEY"]
@@ -202,6 +203,86 @@ Text:
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 st.markdown("---")
+                report_buffer = StringIO()
+                report_buffer = StringIO()
+
+report_buffer.write("Clinical Trial AI Assistant Pro\n")
+report_buffer.write("CRA Protocol Review Report\n")
+report_buffer.write("=" * 40 + "\n\n")
+
+report_buffer.write(f"Overall Protocol Risk Score: {overall_risk_score}\n\n")
+
+report_buffer.write("Risk Rationale\n")
+report_buffer.write("-" * 20 + "\n")
+if risk_rationale:
+    for rr in risk_rationale:
+        report_buffer.write(f"- {rr}\n")
+else:
+    report_buffer.write("No rationale extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Protocol Overview\n")
+report_buffer.write("-" * 20 + "\n")
+if overview:
+    for item in overview:
+        report_buffer.write(f"- {item}\n")
+else:
+    report_buffer.write("No overview extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Key Risks\n")
+report_buffer.write("-" * 20 + "\n")
+if risks:
+    for r in risks:
+        report_buffer.write(f"- {r}\n")
+else:
+    report_buffer.write("No risks extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Inclusion Criteria\n")
+report_buffer.write("-" * 20 + "\n")
+if inclusion:
+    for i in inclusion:
+        report_buffer.write(f"- {i}\n")
+else:
+    report_buffer.write("No inclusion criteria extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Exclusion Criteria\n")
+report_buffer.write("-" * 20 + "\n")
+if exclusion:
+    for e in exclusion:
+        report_buffer.write(f"- {e}\n")
+else:
+    report_buffer.write("No exclusion criteria extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Critical Insights\n")
+report_buffer.write("-" * 20 + "\n")
+if insights:
+    for ins in insights:
+        report_buffer.write(f"- {ins}\n")
+else:
+    report_buffer.write("No critical insights extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("CRA Monitoring Priorities\n")
+report_buffer.write("-" * 20 + "\n")
+if cra_priorities:
+    for c in cra_priorities:
+        report_buffer.write(f"- {c}\n")
+else:
+    report_buffer.write("No CRA priorities extracted.\n")
+report_buffer.write("\n")
+
+report_buffer.write("Operational Challenges\n")
+report_buffer.write("-" * 20 + "\n")
+if operational_challenges:
+    for op in operational_challenges:
+        report_buffer.write(f"- {op}\n")
+else:
+    report_buffer.write("No operational challenges extracted.\n")
+report_buffer.write("\n")
 
                 conversation_messages = [
                     {
@@ -238,6 +319,16 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
 
                 st.subheader("💬 Answer")
                 st.write(answer)
+                report_buffer.write("Q&A\n")
+                report_buffer.write("-" * 20 + "\n")
+                report_buffer.write(f"Question: {question}\n")
+                report_buffer.write(f"Answer: {answer}\n\n")
+
+                st.download_button(
+                    label="📥 Download CRA Report",
+                    data=report_buffer.getvalue(),
+                file_name="cra_protocol_review_report.txt",
+                    mime="text/plain"
 
                 st.subheader("🗂️ Chat History")
                 for role, message in st.session_state.chat_history:
