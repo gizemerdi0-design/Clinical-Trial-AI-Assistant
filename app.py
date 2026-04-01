@@ -284,7 +284,7 @@ else:
     report_buffer.write("No operational challenges extracted.\n")
 report_buffer.write("\n")
 
-                conversation_messages = [
+conversation_messages = [
                     {
                         "role": "system",
                         "content": """
