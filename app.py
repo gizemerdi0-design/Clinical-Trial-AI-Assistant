@@ -7,7 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1r-3eYpm8W2aY--2tVT86Fp873a_nIE9N
 """
 
-!pip install streamlit pyngrok openai pdfplumber
 
 import os
 
