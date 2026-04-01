@@ -282,12 +282,8 @@ print(response.choices[0].message.content)
 
 import os
 
-!killall ngrok
-!killall streamlit
 
-!streamlit run app.py &>/dev/null &
 
-! pip install pyngrok
 
 from pyngrok import ngrok
 
@@ -299,4 +295,3 @@ ngrok.kill() # önceki bağlantıları temizler
 public_url = ngrok.connect(8501)
 print(public_url)
 
-!pip install --upgrade pyngrok
