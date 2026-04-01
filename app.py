@@ -266,7 +266,6 @@ import os
 import os
 os.environ["OPENAI_API_KEY"] = "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"
 
-!pip install pyngrok
 
 from openai import OpenAI
 
@@ -281,12 +280,7 @@ print(response.choices[0].message.content)
 
 import os
 
-!killall ngrok
-!killall streamlit
 
-!streamlit run app.py &>/dev/null &
-
-! pip install pyngrok
 
 from pyngrok import ngrok
 
@@ -298,4 +292,3 @@ ngrok.kill() # önceki bağlantıları temizler
 public_url = ngrok.connect(8501)
 print(public_url)
 
-!pip install --upgrade pyngrok
