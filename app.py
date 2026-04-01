@@ -299,7 +299,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                     }
                 ]
 
-                for role, message in st.session_state.chat_history:
+for role, message in st.session_state.chat_history:
                     if role == "You":
                         conversation_messages.append({"role": "user", "content": message})
                     else:
