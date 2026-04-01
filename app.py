@@ -268,7 +268,6 @@ import os
 import os
 os.environ["OPENAI_API_KEY"] = "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"
 
-!pip install pyngrok
 
 from openai import OpenAI
 
