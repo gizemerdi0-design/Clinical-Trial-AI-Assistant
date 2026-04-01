@@ -17,12 +17,12 @@ import os
 # import json
 # import os
 # 
-# try:
-#     api_key = st.secrets["OPENAI_API_KEY"]
-# except Exception:
-#     api_key = os.getenv("OPENAI_API_KEY")
-# 
-# client = OpenAI(api_key=api_key)
+ try:
+     api_key = st.secrets["OPENAI_API_KEY"]
+ except Exception:
+     api_key = os.getenv("OPENAI_API_KEY")
+ 
+ client = OpenAI(api_key=api_key)
 # 
 # if "chat_history" not in st.session_state:
 #     st.session_state.chat_history = []
