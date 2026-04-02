@@ -78,6 +78,30 @@ if uploaded_file:
 
     # 🧠 SUMMARY PROMPT
     summary_prompt = f"""
+    You are an AI assistant helping a Clinical Research Associate.
+
+    Analyze the clinical trial protocol and return ONLY valid JSON.
+
+    Use this schema:
+
+    {{
+      "risk_score": "Low/Medium/High",
+      "key_risks": ["..."],
+      "inclusion": ["..."],
+      "exclusion": ["..."],
+      "cra_priorities": ["..."],
+      "operational_challenges": ["..."]
+     }}
+
+     Rules:
+     - No explanation
+     - No markdown
+     - Only JSON
+     - Keep items short and practical
+
+    Protocol:
+    {text}
+    """
     Analyze this clinical trial protocol and provide:
 
     1. Overall Risk Score (Low/Medium/High)
@@ -100,9 +124,44 @@ if uploaded_file:
     )
 
     summary = summary_response.choices[0].message.content
+    import json
+
+    summary_data = json.loads(summary_response.choices[0].message.content)
+
+    risk_score = summary_data.get("risk_score", "Unknown")
+    key_risks = summary_data.get("key_risks", [])
+    inclusion = summary_data.get("inclusion", [])
+    exclusion = summary_data.get("exclusion", [])
+    cra_priorities = summary_data.get("cra_priorities", [])
+    operational_challenges = summary_data.get("operational_challenges", []
 
     st.subheader("📊 Protocol Analysis")
-    st.write(summary)
+    st.subheader("📊 Risk Level")
+    st.write(risk_score)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("⚠️ Key Risks")
+        for r in key_risks:
+            st.write(f"- {r}")
+
+        st.subheader("👥 Inclusion")
+        for i in inclusion:
+            st.write(f"- {i}")
+
+    with col2:
+        st.subheader("🚫 Exclusion")
+        for e in exclusion:
+            st.write(f"- {e}")
+
+    st.subheader("🛠️ Challenges")
+    for c in operational_challenges:
+        st.write(f"- {c}")
+
+    st.subheader("🎯 CRA Priorities")
+    for p in cra_priorities:
+        st.write(f"- {p}")
 
     # 🧪 CHECKLIST PROMPT
     checklist_prompt = f"""
