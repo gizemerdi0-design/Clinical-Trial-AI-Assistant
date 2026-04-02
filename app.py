@@ -4,6 +4,7 @@ from openai import OpenAI
 import json
 import os
 from io import StringIO
+from fpdf import FPDF
 
 try:
     api_key = st.secrets["OPENAI_API_KEY"]
@@ -12,6 +13,62 @@ except Exception:
 
 client = OpenAI(api_key=api_key)
 
+def build_pdf_report(
+    overall_risk_score,
+    risk_rationale,
+    overview,
+    risks,
+    inclusion,
+    exclusion,
+    insights,
+    cra_priorities,
+    operational_challenges,
+    question,
+    answer
+):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # Başlık
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Clinical Trial AI Assistant Pro", ln=True)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, "CRA Protocol Review Report", ln=True)
+    pdf.ln(4)
+
+    def add_section(title, items):
+        pdf.set_font("Arial", "B", 13)
+        pdf.multi_cell(0, 8, title)
+        pdf.set_font("Arial", "", 11)
+
+        if items:
+            for item in items:
+                clean_item = str(item).replace("•", "-").replace("–", "-")
+                pdf.multi_cell(0, 7, f"- {clean_item}")
+        else:
+            pdf.multi_cell(0, 7, "No information extracted.")
+        pdf.ln(2)
+
+    # Risk score
+    pdf.set_font("Arial", "B", 13)
+    pdf.multi_cell(0, 8, f"Overall Protocol Risk Score: {overall_risk_score}")
+    pdf.ln(2)
+
+    add_section("Risk Rationale", risk_rationale)
+    add_section("Protocol Overview", overview)
+    add_section("Key Risks", risks)
+    add_section("Inclusion Criteria", inclusion)
+    add_section("Exclusion Criteria", exclusion)
+    add_section("Critical Insights", insights)
+    add_section("CRA Monitoring Priorities", cra_priorities)
+    add_section("Operational Challenges", operational_challenges)
+
+    add_section("Q&A", [f"Question: {question}", f"Answer: {answer}"])
+
+    return bytes(pdf.output(dest="S"))
+    
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -328,11 +385,25 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 st.subheader("💬 Answer")
                 st.write(answer)
 
+                pdf_data = build_pdf_report(
+                    overall_risk_score,
+                    risk_rationale,
+                    overview,
+                    risks,
+                    inclusion,
+                    exclusion,
+                    insights,
+                    cra_priorities,
+                    operational_challenges,
+                    question,
+                    answer
+                )
+
                 st.download_button(
-                    label="📥 Download CRA Report",
-                    data=report_buffer.getvalue(),
-                    file_name="cra_protocol_review_report.txt",
-                    mime="text/plain"
+                    label="📥 Download CRA Report (PDF)",
+                    data=pdf_data,
+                file_name="cra_protocol_review_report.pdf",
+                    mime="application/pdf"
                 )
 
                 st.subheader("🗂️ Chat History")
