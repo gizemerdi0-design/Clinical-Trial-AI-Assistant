@@ -45,7 +45,15 @@ def build_pdf_report(
 
         if items:
             for item in items:
-                clean_item = str(item).replace("•", "-").replace("–", "-")
+                clean_item = (
+                    str(item)
+                    .replace("•", "-")
+                    .replace("–", "-")
+                    .replace("—", "-")
+                    .encode("latin-1", "ignore")
+                    .decode("latin-1")
+                 )
+
                 pdf.multi_cell(0, 7, f"- {clean_item}")
         else:
             pdf.multi_cell(0, 7, "No information extracted.")
@@ -65,7 +73,10 @@ def build_pdf_report(
     add_section("CRA Monitoring Priorities", cra_priorities)
     add_section("Operational Challenges", operational_challenges)
 
-    add_section("Q&A", [f"Question: {question}", f"Answer: {answer}"])
+    safe_q = str(question).encode("latin-1", "ignore").decode("latin-1")
+    safe_a = str(answer).encode("latin-1", "ignore").decode("latin-1")
+
+    add_section("Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
 
     return bytes(pdf.output(dest="S"))
     
