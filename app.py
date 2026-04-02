@@ -102,21 +102,7 @@ if uploaded_file:
     Protocol:
     {text}
     """
-    Analyze this clinical trial protocol and provide:
 
-    1. Overall Risk Score (Low/Medium/High)
-    2. Risk Rationale
-    3. Protocol Overview
-    4. Key Risks
-    5. Inclusion Criteria
-    6. Exclusion Criteria
-    7. Critical Insights
-    8. CRA Monitoring Priorities
-    9. Operational Challenges
-
-    Protocol:
-    {text}
-    """
 
     summary_response = client.chat.completions.create(
         model="gpt-4o-mini",
