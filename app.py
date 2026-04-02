@@ -190,25 +190,26 @@ if uploaded_file:
 
     # 💬 Q&A
     answer = ""
+
     if question:
         qa_prompt = f"""
-        Based on this protocol, answer the question:
+    Based on this protocol, answer the question:
 
-        {question}
+    {question}
 
-        Protocol:
-        {text}
-        """
+    Protocol:
+    {text}
+     """
 
-        qa_response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": qa_prompt}]
-        )
+         qa_response = client.chat.completions.create(
+             model="gpt-4o-mini",
+             messages=[{"role": "user", "content": qa_prompt}]
+         )
 
-        answer = qa_response.choices[0].message.content
+         answer = qa_response.choices[0].message.content
 
-        st.subheader("💬 Answer")
-        st.write(answer)
+         st.subheader("💬 Answer")
+         st.write(answer
 
     # 📥 PDF DOWNLOAD
     pdf_data = build_pdf_report(
