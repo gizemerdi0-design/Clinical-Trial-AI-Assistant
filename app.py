@@ -172,7 +172,7 @@ Protocol:
             with col1:
                 st.markdown("### ⚠️ Key Risks")
                 for r in key_risks:
-                    st.markdown(f"• {r}"))
+                    st.markdown(f"• {r}")
 
                 st.markdown("### 👥 Inclusion Criteria")
                 for i in inclusion:
