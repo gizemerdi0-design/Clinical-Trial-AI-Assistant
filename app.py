@@ -143,32 +143,52 @@ Protocol:
             cra_priorities = summary_data.get("cra_priorities", [])
             operational_challenges = summary_data.get("operational_challenges", [])
 
-            st.subheader("📊 Risk Level")
-            st.write(risk_score)
+            # 🎨 Risk color logic
+            risk_color = {
+                "Low": "green",
+                "Medium": "orange",
+                "High": "red"
+            }.get(risk_score, "gray")
+
+            st.markdown("## 📊 Overall Risk Assessment")
+
+            st.markdown(f"""
+            <div style="
+            padding:20px;
+            border-radius:12px;
+            background-color:#f5f5f5;
+            text-align:center;
+            margin-bottom:20px;
+            ">
+            <h2 style="color:{risk_color}; margin:0;">
+                {risk_score}
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
+
 
             col1, col2 = st.columns(2)
 
             with col1:
-                st.subheader("⚠️ Key Risks")
+                st.markdown("### ⚠️ Key Risks")
                 for r in key_risks:
-                    st.write(f"- {r}")
+                    st.markdown(f"• {r}"))
 
-                st.subheader("👥 Inclusion")
+                st.markdown("### 👥 Inclusion Criteria")
                 for i in inclusion:
-                    st.write(f"- {i}")
+                    st.markdown(f"• {i}")
 
-            with col2:
-                st.subheader("🚫 Exclusion")
+                st.markdown("### 🚫 Exclusion Criteria")
                 for e in exclusion:
-                    st.write(f"- {e}")
+                    st.markdown(f"• {e}")
 
-                st.subheader("🛠️ Challenges")
+                st.markdown("### 🛠️ Operational Challenges")
                 for c in operational_challenges:
-                    st.write(f"- {c}")
+                    st.markdown(f"• {c}")
 
-            st.subheader("🎯 CRA Priorities")
+            st.markdown("### 🎯 CRA Monitoring Priorities")
             for p in cra_priorities:
-                st.write(f"- {p}")
+                st.markdown(f"• {p}")
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -191,8 +211,8 @@ Protocol:
 
             checklist = checklist_response.choices[0].message.content
 
-            st.subheader("🧪 Monitoring Visit Checklist")
-            st.write(checklist)
+            st.markdown("## 🧪 Monitoring Visit Checklist")
+            st.markdown(checklist) 
 
             answer = ""
             if question:
@@ -215,8 +235,18 @@ Protocol:
                 st.session_state.chat_history.append(("You", question))
                 st.session_state.chat_history.append(("Assistant", answer))
 
-                st.subheader("💬 Answer")
-                st.write(answer)
+                st.markdown("## 💬 Clinical Insight")
+
+                st.markdown(f"""
+                <div style="
+                    padding:15px;
+                    border-radius:10px;
+                    background-color:#f0f8ff;
+                 ">
+                 {answer}
+                 </div>
+                 """, unsafe_allow_html=True)
+)
 
             pdf_data = build_pdf_report(
                 risk_score=risk_score,
