@@ -78,7 +78,7 @@ def build_pdf_report(
 
     add_section("Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
 
-    return bytes(pdf.output(dest="S"))
+    return pdf.output(dest="S").encode("latin-1")
     
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
