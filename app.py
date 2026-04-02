@@ -246,7 +246,6 @@ Protocol:
                  {answer}
                  </div>
                  """, unsafe_allow_html=True)
-)
 
             pdf_data = build_pdf_report(
                 risk_score=risk_score,
