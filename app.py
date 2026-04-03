@@ -4,6 +4,8 @@ from openai import OpenAI
 import json
 import os
 from fpdf import FPDF
+from datetime import datetime
+
 
 # API key
 try:
@@ -31,6 +33,7 @@ def clean_pdf_text(text: str) -> str:
 
 
 def build_pdf_report(
+    file_name,
     risk_score,
     study_complexity,
     retention_risk,
@@ -49,12 +52,15 @@ def build_pdf_report(
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Clinical Trial AI Assistant Pro", ln=True)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 8, "CRA Protocol Review Report", ln=True)
-    pdf.ln(5)
+    def clean_pdf_text(text: str) -> str:
+        return (
+            str(text)
+            .replace("•", "-")
+            .replace("–", "-")
+            .replace("—", "-")
+            .encode("latin-1", "ignore")
+            .decode("latin-1")
+        )
 
     def add_section(title, items):
         pdf.set_font("Arial", "B", 13)
@@ -75,9 +81,32 @@ def build_pdf_report(
                 pdf.multi_cell(0, 7, "No information extracted.")
         pdf.ln(3)
 
-    add_section("Overall Risk Score", risk_score)
-    add_section("Study Complexity", study_complexity)
-    add_section("Retention Risk", retention_risk)
+    # Header
+    report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Clinical Trial AI Assistant Pro", ln=True)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, "CRA Protocol Review Report", ln=True)
+    pdf.ln(2)
+
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, clean_pdf_text(f"Generated: {report_date}"), ln=True)
+    pdf.cell(0, 6, clean_pdf_text(f"Document: {file_name}"), ln=True)
+    pdf.ln(5)
+
+    # Score summary
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 8, "Executive Score Summary", ln=True)
+
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 7, clean_pdf_text(f"Overall Risk: {risk_score}"), ln=True)
+    pdf.cell(0, 7, clean_pdf_text(f"Study Complexity: {study_complexity}"), ln=True)
+    pdf.cell(0, 7, clean_pdf_text(f"Retention Risk: {retention_risk}"), ln=True)
+    pdf.ln(4)
+
+    # Main sections
     add_section("Complexity Rationale", complexity_rationale)
     add_section("Retention Rationale", retention_rationale)
     add_section("Key Risks", key_risks)
@@ -92,6 +121,7 @@ def build_pdf_report(
     add_section("Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
 
     return pdf.output(dest="S").encode("latin-1")
+
 
 
 # ---------- UI ----------
@@ -327,25 +357,28 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
 
             # ---------- PDF REPORT ----------
             pdf_data = build_pdf_report(
-                risk_score=risk_score,
-                study_complexity=study_complexity,
-                retention_risk=retention_risk,
-                complexity_rationale=complexity_rationale,
-                retention_rationale=retention_rationale,
-                key_risks=key_risks,
-                inclusion=inclusion,
-                exclusion=exclusion,
-                cra_priorities=cra_priorities,
-                operational_challenges=operational_challenges,
-                checklist=checklist,
-                question=question,
-                answer=answer,
+    file_name=uploaded_file.name,
+    risk_score=risk_score,
+    study_complexity=study_complexity,
+    retention_risk=retention_risk,
+    complexity_rationale=complexity_rationale,
+    retention_rationale=retention_rationale,
+    key_risks=key_risks,
+    inclusion=inclusion,
+    exclusion=exclusion,
+    cra_priorities=cra_priorities,
+    operational_challenges=operational_challenges,
+    checklist=checklist,
+    question=question,
+    answer=answer,
+)
+
             )
 
             st.download_button(
                 label="📥 Download CRA Report (PDF)",
                 data=pdf_data,
-                file_name="cra_protocol_report.pdf",
+                file_name=f"{uploaded_file.name.rsplit('.', 1)[0]}_CRA_Report.pdf",
                 mime="application/pdf",
             )
 
