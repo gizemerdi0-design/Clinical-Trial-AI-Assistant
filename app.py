@@ -166,11 +166,68 @@ Protocol:
                 st.stop()
 
             risk_score = summary_data.get("risk_score", "Unknown")
+            study_complexity = summary_data.get("study_complexity", "Unknown")
+            retention_risk = summary_data.get("retention_risk", "Unknown")
+
+            complexity_rationale = summary_data.get("complexity_rationale", [])
+            retention_rationale = summary_data.get("retention_rationale", [])
+
             key_risks = summary_data.get("key_risks", [])
             inclusion = summary_data.get("inclusion", [])
             exclusion = summary_data.get("exclusion", [])
             cra_priorities = summary_data.get("cra_priorities", [])
             operational_challenges = summary_data.get("operational_challenges", [])
+
+            # Score colors
+            def score_color(score):
+                return {
+                    "Low": "green",
+                    "Medium": "orange",
+                    "High": "red"
+                }.get(score, "gray")
+
+            st.markdown("## 📊 Protocol Risk Dashboard")
+
+            col_a, col_b, col_c = st.columns(3)
+
+            with col_a:
+                st.markdown(f"""
+                <div style="
+                    padding:15px;
+                    border-radius:12px;
+                    background-color:#f5f5f5;
+                    text-align:center;
+                 ">
+                    <h4 style="margin:0;">Overall Risk</h4>
+                    <h2 style="color:{score_color(risk_score)};">{risk_score}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+           with col_b:
+               st.markdown(f"""
+               <div style="
+                   padding:15px;
+                   border-radius:12px;
+                   background-color:#f5f5f5;
+                   text-align:center;
+                ">
+                   <h4 style="margin:0;">Study Complexity</h4>
+                   <h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2>
+               </div>
+               """, unsafe_allow_html=True)
+
+           with col_c:
+               st.markdown(f"""
+               <div style="
+                   padding:15px;
+                   border-radius:12px;
+                   background-color:#f5f5f5;
+                   text-align:center;
+                ">
+                   <h4 style="margin:0;">Retention Risk</h4>
+                   <h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2>
+                </div>
+                """, unsafe_allow_html=True)
 
             # 🎨 Risk color logic
             risk_color = {
