@@ -201,7 +201,8 @@ Protocol:
                     <h4 style="margin:0;">Overall Risk</h4>
                     <h2 style="color:{score_color(risk_score)};">{risk_score}</h2>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True)
 
            with col_b:
                st.markdown(f"""
@@ -214,7 +215,8 @@ Protocol:
                    <h4 style="margin:0;">Study Complexity</h4>
                    <h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2>
                </div>
-               """, unsafe_allow_html=True)
+               """,
+               unsafe_allow_html=True)
 
            with col_c:
                st.markdown(f"""
