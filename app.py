@@ -373,7 +373,6 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
     answer=answer,
 )
 
-            )
 
             st.download_button(
                 label="📥 Download CRA Report (PDF)",
