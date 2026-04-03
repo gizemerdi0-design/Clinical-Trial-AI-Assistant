@@ -299,7 +299,7 @@ with col_r2:
 
 
             # ---------- STRUCTURED OUTPUT ----------
-            col_a, col_b = st.columns(2)
+col_a, col_b = st.columns(2)
 
             with col_a:
     st.markdown('<div class="card">', unsafe_allow_html=True)
