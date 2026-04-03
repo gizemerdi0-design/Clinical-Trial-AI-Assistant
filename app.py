@@ -277,7 +277,7 @@ Protocol:
 
             col_r1, col_r2 = st.columns(2)
 
-            with col_r1:
+with col_r1:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Complexity Rationale</div>', unsafe_allow_html=True)
     if complexity_rationale:
