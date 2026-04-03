@@ -301,7 +301,7 @@ with col_r2:
             # ---------- STRUCTURED OUTPUT ----------
 col_a, col_b = st.columns(2)
 
-            with col_a:
+with col_a:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Key Risks</div>', unsafe_allow_html=True)
     for r in key_risks:
