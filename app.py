@@ -347,8 +347,8 @@ Protocol:
 """
 
             checklist_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": checklist_prompt}],
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": checklist_prompt}],
             )
 
             checklist = checklist_response.choices[0].message.content
