@@ -331,7 +331,8 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 
             # ---------- CHECKLIST ----------
-            checklist_prompt = f"""
+            
+checklist_prompt = f"""
 You are a senior Clinical Research Associate.
 
 Based on this protocol, generate a Monitoring Visit Checklist including:
