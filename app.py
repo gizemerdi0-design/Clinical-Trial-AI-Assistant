@@ -6,8 +6,7 @@ import os
 from fpdf import FPDF
 from datetime import datetime
 
-
-# API key
+# ---------- API KEY ----------
 try:
     api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
@@ -15,12 +14,11 @@ except Exception:
 
 client = OpenAI(api_key=api_key)
 
-# Chat history
+# ---------- SESSION ----------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-
-# ---------- PDF REPORT ----------
+# ---------- HELPERS ----------
 def clean_pdf_text(text: str) -> str:
     return (
         str(text)
@@ -31,6 +29,12 @@ def clean_pdf_text(text: str) -> str:
         .decode("latin-1")
     )
 
+def score_color(score):
+    return {
+        "Low": "green",
+        "Medium": "orange",
+        "High": "red"
+    }.get(score, "gray")
 
 def build_pdf_report(
     file_name,
@@ -52,16 +56,6 @@ def build_pdf_report(
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    def clean_pdf_text(text: str) -> str:
-        return (
-            str(text)
-            .replace("•", "-")
-            .replace("–", "-")
-            .replace("—", "-")
-            .encode("latin-1", "ignore")
-            .decode("latin-1")
-        )
-
     def add_section(title, items):
         pdf.set_font("Arial", "B", 13)
         pdf.multi_cell(0, 8, clean_pdf_text(title))
@@ -81,7 +75,6 @@ def build_pdf_report(
                 pdf.multi_cell(0, 7, "No information extracted.")
         pdf.ln(3)
 
-    # Header
     report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     pdf.set_font("Arial", "B", 16)
@@ -96,7 +89,6 @@ def build_pdf_report(
     pdf.cell(0, 6, clean_pdf_text(f"Document: {file_name}"), ln=True)
     pdf.ln(5)
 
-    # Score summary
     pdf.set_font("Arial", "B", 13)
     pdf.cell(0, 8, "Executive Score Summary", ln=True)
 
@@ -106,7 +98,6 @@ def build_pdf_report(
     pdf.cell(0, 7, clean_pdf_text(f"Retention Risk: {retention_risk}"), ln=True)
     pdf.ln(4)
 
-    # Main sections
     add_section("Complexity Rationale", complexity_rationale)
     add_section("Retention Rationale", retention_rationale)
     add_section("Key Risks", key_risks)
@@ -123,12 +114,7 @@ def build_pdf_report(
     return pdf.output(dest="S").encode("latin-1")
 
 
-
 # ---------- UI ----------
-st.markdown("# Clinical Trial AI Assistant Pro")
-st.caption("AI-powered protocol review and CRA decision support")
-st.markdown("---")
-
 st.markdown("""
 <style>
 .block-container {
@@ -160,10 +146,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("# Clinical Trial AI Assistant Pro")
+st.caption("AI-powered protocol review and CRA decision support")
+st.markdown("---")
 
 uploaded_file = st.file_uploader("Upload protocol document", type="pdf")
 question = st.text_input("Enter a protocol question for CRA-focused analysis")
-
 
 if st.button("Clear Chat"):
     st.session_state.chat_history = []
@@ -240,13 +228,6 @@ Protocol:
             operational_challenges = summary_data.get("operational_challenges", [])
 
             # ---------- DASHBOARD ----------
-            def score_color(score):
-                return {
-                    "Low": "green",
-                    "Medium": "orange",
-                    "High": "red"
-                }.get(score, "gray")
-
             st.markdown("## Executive Risk Dashboard")
 
             col1, col2, col3 = st.columns(3)
@@ -277,62 +258,59 @@ Protocol:
 
             col_r1, col_r2 = st.columns(2)
 
-with col_r1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Complexity Rationale</div>', unsafe_allow_html=True)
-    if complexity_rationale:
-        for item in complexity_rationale:
-            st.markdown(f"• {item}")
-    else:
-        st.write("No complexity rationale extracted.")
-    st.markdown("</div>", unsafe_allow_html=True)
+            with col_r1:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Complexity Rationale</div>', unsafe_allow_html=True)
+                if complexity_rationale:
+                    for item in complexity_rationale:
+                        st.markdown(f"• {item}")
+                else:
+                    st.write("No complexity rationale extracted.")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-with col_r2:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Retention Rationale</div>', unsafe_allow_html=True)
-    if retention_rationale:
-        for item in retention_rationale:
-            st.markdown(f"• {item}")
-    else:
-        st.write("No retention rationale extracted.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
+            with col_r2:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Retention Rationale</div>', unsafe_allow_html=True)
+                if retention_rationale:
+                    for item in retention_rationale:
+                        st.markdown(f"• {item}")
+                else:
+                    st.write("No retention rationale extracted.")
+                st.markdown("</div>", unsafe_allow_html=True)
 
             # ---------- STRUCTURED OUTPUT ----------
-col_a, col_b = st.columns(2)
+            col_a, col_b = st.columns(2)
 
-with col_a:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Key Risks</div>', unsafe_allow_html=True)
-    for r in key_risks:
-        st.markdown(f"• {r}")
+            with col_a:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Key Risks</div>', unsafe_allow_html=True)
+                for r in key_risks:
+                    st.markdown(f"• {r}")
 
-    st.markdown('<div class="section-title">Inclusion Criteria</div>', unsafe_allow_html=True)
-    for i in inclusion:
-        st.markdown(f"• {i}")
-    st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Inclusion Criteria</div>', unsafe_allow_html=True)
+                for i in inclusion:
+                    st.markdown(f"• {i}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-with col_b:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Exclusion Criteria</div>', unsafe_allow_html=True)
-    for e in exclusion:
-        st.markdown(f"• {e}")
+            with col_b:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Exclusion Criteria</div>', unsafe_allow_html=True)
+                for e in exclusion:
+                    st.markdown(f"• {e}")
 
-    st.markdown('<div class="section-title">Operational Challenges</div>', unsafe_allow_html=True)
-    for c in operational_challenges:
-        st.markdown(f"• {c}")
-    st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Operational Challenges</div>', unsafe_allow_html=True)
+                for c in operational_challenges:
+                    st.markdown(f"• {c}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title">CRA Monitoring Priorities</div>', unsafe_allow_html=True)
-for p in cra_priorities:
-    st.markdown(f"• {p}")
-st.markdown("</div>", unsafe_allow_html=True)
-
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">CRA Monitoring Priorities</div>', unsafe_allow_html=True)
+            for p in cra_priorities:
+                st.markdown(f"• {p}")
+            st.markdown("</div>", unsafe_allow_html=True)
 
             # ---------- CHECKLIST ----------
-            
-checklist_prompt = f"""
+            checklist_prompt = f"""
 You are a senior Clinical Research Associate.
 
 Based on this protocol, generate a Monitoring Visit Checklist including:
@@ -347,15 +325,17 @@ Protocol:
 """
 
             checklist_response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": checklist_prompt}],
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": checklist_prompt}],
             )
 
             checklist = checklist_response.choices[0].message.content
 
             st.markdown("## Monitoring Visit Checklist")
-            st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
-
+            st.markdown(
+                f'<div class="soft-box">{checklist}</div>',
+                unsafe_allow_html=True
+            )
 
             # ---------- Q&A ----------
             answer = ""
@@ -394,29 +374,31 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 st.session_state.chat_history.append(("Assistant", answer))
 
                 st.markdown("## Clinical Insight")
-                st.markdown(f'<div class="soft-box">{answer}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="soft-box">{answer}</div>',
+                    unsafe_allow_html=True
+                )
 
-
-
-            # ---------- PDF REPORT ----------
+            # ---------- PDF ----------
             pdf_data = build_pdf_report(
-    file_name=uploaded_file.name,
-    risk_score=risk_score,
-    study_complexity=study_complexity,
-    retention_risk=retention_risk,
-    complexity_rationale=complexity_rationale,
-    retention_rationale=retention_rationale,
-    key_risks=key_risks,
-    inclusion=inclusion,
-    exclusion=exclusion,
-    cra_priorities=cra_priorities,
-    operational_challenges=operational_challenges,
-    checklist=checklist,
-    question=question,
-    answer=answer,
-)
+                file_name=uploaded_file.name,
+                risk_score=risk_score,
+                study_complexity=study_complexity,
+                retention_risk=retention_risk,
+                complexity_rationale=complexity_rationale,
+                retention_rationale=retention_rationale,
+                key_risks=key_risks,
+                inclusion=inclusion,
+                exclusion=exclusion,
+                cra_priorities=cra_priorities,
+                operational_challenges=operational_challenges,
+                checklist=checklist,
+                question=question,
+                answer=answer,
+            )
 
             st.markdown("## Export")
+
             st.download_button(
                 label="📥 Download CRA Report (PDF)",
                 data=pdf_data,
