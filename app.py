@@ -97,6 +97,35 @@ if uploaded_file and st.button("Analyze"):
     else:
         with st.spinner("Analyzing protocol..."):
             summary_prompt = f"""
+            You are an AI assistant helping a Clinical Research Associate.
+
+            Analyze this clinical trial protocol and return ONLY valid JSON.
+
+            Use this schema:
+
+            {{
+              "risk_score": "Low/Medium/High",
+              "study_complexity": "Low/Medium/High",
+              "retention_risk": "Low/Medium/High",
+              "complexity_rationale": ["..."],
+              "retention_rationale": ["..."],
+              "key_risks": ["..."],
+              "inclusion": ["..."],
+              "exclusion": ["..."],
+              "cra_priorities": ["..."],
+              "operational_challenges": ["..."]
+            }}
+
+            Rules:
+            - No explanation
+            - No markdown
+            - Only JSON
+            - Keep items short and practical
+            - All list items should be concise and CRA-relevant
+
+            Protocol:
+            {text}
+            """
 You are an AI assistant helping a Clinical Research Associate.
 
 Analyze the clinical trial protocol and return ONLY valid JSON.
