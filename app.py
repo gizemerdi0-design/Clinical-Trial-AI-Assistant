@@ -125,11 +125,45 @@ def build_pdf_report(
 
 
 # ---------- UI ----------
-st.markdown("# 🧠 Clinical Trial AI Assistant Pro")
-st.caption("AI-powered protocol analysis for Clinical Research Associates")
+st.markdown("# Clinical Trial AI Assistant Pro")
+st.caption("AI-powered protocol review and CRA decision support")
+st.markdown("---")
 
-uploaded_file = st.file_uploader("Upload Clinical Trial Protocol (PDF)", type="pdf")
-question = st.text_input("Ask a clinical question about the protocol")
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.card {
+    background-color: #f8f9fb;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid #e6e8ef;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.soft-box {
+    background-color: #f4f8ff;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #dbeafe;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+uploaded_file = st.file_uploader("Upload protocol document", type="pdf")
+question = st.text_input("Enter a protocol question for CRA-focused analysis")
+
 
 if st.button("Clear Chat"):
     st.session_state.chat_history = []
@@ -213,7 +247,7 @@ Protocol:
                     "High": "red"
                 }.get(score, "gray")
 
-            st.markdown("## 📊 Protocol Risk Dashboard")
+            st.markdown("## Executive Risk Dashboard")
 
             col1, col2, col3 = st.columns(3)
 
@@ -244,45 +278,57 @@ Protocol:
             col_r1, col_r2 = st.columns(2)
 
             with col_r1:
-                st.markdown("### 🧩 Complexity Rationale")
-                if complexity_rationale:
-                    for item in complexity_rationale:
-                        st.markdown(f"• {item}")
-                else:
-                    st.write("No complexity rationale extracted.")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Complexity Rationale</div>', unsafe_allow_html=True)
+    if complexity_rationale:
+        for item in complexity_rationale:
+            st.markdown(f"• {item}")
+    else:
+        st.write("No complexity rationale extracted.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-            with col_r2:
-                st.markdown("### 🔁 Retention Rationale")
-                if retention_rationale:
-                    for item in retention_rationale:
-                        st.markdown(f"• {item}")
-                else:
-                    st.write("No retention rationale extracted.")
+with col_r2:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Retention Rationale</div>', unsafe_allow_html=True)
+    if retention_rationale:
+        for item in retention_rationale:
+            st.markdown(f"• {item}")
+    else:
+        st.write("No retention rationale extracted.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
             # ---------- STRUCTURED OUTPUT ----------
             col_a, col_b = st.columns(2)
 
             with col_a:
-                st.markdown("### ⚠️ Key Risks")
-                for r in key_risks:
-                    st.markdown(f"• {r}")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Key Risks</div>', unsafe_allow_html=True)
+    for r in key_risks:
+        st.markdown(f"• {r}")
 
-                st.markdown("### 👥 Inclusion Criteria")
-                for i in inclusion:
-                    st.markdown(f"• {i}")
+    st.markdown('<div class="section-title">Inclusion Criteria</div>', unsafe_allow_html=True)
+    for i in inclusion:
+        st.markdown(f"• {i}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-            with col_b:
-                st.markdown("### 🚫 Exclusion Criteria")
-                for e in exclusion:
-                    st.markdown(f"• {e}")
+with col_b:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Exclusion Criteria</div>', unsafe_allow_html=True)
+    for e in exclusion:
+        st.markdown(f"• {e}")
 
-                st.markdown("### 🛠️ Operational Challenges")
-                for c in operational_challenges:
-                    st.markdown(f"• {c}")
+    st.markdown('<div class="section-title">Operational Challenges</div>', unsafe_allow_html=True)
+    for c in operational_challenges:
+        st.markdown(f"• {c}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-            st.markdown("### 🎯 CRA Monitoring Priorities")
-            for p in cra_priorities:
-                st.markdown(f"• {p}")
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="section-title">CRA Monitoring Priorities</div>', unsafe_allow_html=True)
+for p in cra_priorities:
+    st.markdown(f"• {p}")
+st.markdown("</div>", unsafe_allow_html=True)
+
 
             # ---------- CHECKLIST ----------
             checklist_prompt = f"""
@@ -306,8 +352,9 @@ Protocol:
 
             checklist = checklist_response.choices[0].message.content
 
-            st.markdown("## 🧪 Monitoring Visit Checklist")
-            st.markdown(checklist)
+            st.markdown("## Monitoring Visit Checklist")
+            st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
+
 
             # ---------- Q&A ----------
             answer = ""
@@ -345,15 +392,10 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 st.session_state.chat_history.append(("You", question))
                 st.session_state.chat_history.append(("Assistant", answer))
 
-                st.markdown("## 💬 Clinical Insight")
-                st.markdown(
-                    f"""
-<div style="padding:15px; border-radius:10px; background-color:#f0f8ff;">
-{answer}
-</div>
-""",
-                    unsafe_allow_html=True,
-                )
+                st.markdown("## Clinical Insight")
+                st.markdown(f'<div class="soft-box">{answer}</div>', unsafe_allow_html=True)
+
+
 
             # ---------- PDF REPORT ----------
             pdf_data = build_pdf_report(
@@ -373,7 +415,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
     answer=answer,
 )
 
-
+            st.markdown("## Export")
             st.download_button(
                 label="📥 Download CRA Report (PDF)",
                 data=pdf_data,
@@ -382,7 +424,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
             )
 
             if st.session_state.chat_history:
-                st.subheader("🗂️ Chat History")
+                st.subheader("Conversation History")
                 for role, message in st.session_state.chat_history:
                     if role == "You":
                         st.markdown(f"**You:** {message}")
