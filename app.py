@@ -5,6 +5,7 @@ import json
 import os
 from fpdf import FPDF
 
+# API key
 try:
     api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
@@ -12,13 +13,29 @@ except Exception:
 
 client = OpenAI(api_key=api_key)
 
+# Chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
+
+# ---------- PDF REPORT ----------
 def clean_pdf_text(text: str) -> str:
-    return str(text).replace("•", "-").replace("–", "-").replace("—", "-").encode("latin-1", "ignore").decode("latin-1")
+    return (
+        str(text)
+        .replace("•", "-")
+        .replace("–", "-")
+        .replace("—", "-")
+        .encode("latin-1", "ignore")
+        .decode("latin-1")
+    )
 
 
 def build_pdf_report(
     risk_score,
+    study_complexity,
+    retention_risk,
+    complexity_rationale,
+    retention_rationale,
     key_risks,
     inclusion,
     exclusion,
@@ -59,6 +76,10 @@ def build_pdf_report(
         pdf.ln(3)
 
     add_section("Overall Risk Score", risk_score)
+    add_section("Study Complexity", study_complexity)
+    add_section("Retention Risk", retention_risk)
+    add_section("Complexity Rationale", complexity_rationale)
+    add_section("Retention Rationale", retention_rationale)
     add_section("Key Risks", key_risks)
     add_section("Inclusion Criteria", inclusion)
     add_section("Exclusion Criteria", exclusion)
@@ -73,10 +94,8 @@ def build_pdf_report(
     return pdf.output(dest="S").encode("latin-1")
 
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-st.title("🧪 Clinical Trial AI Assistant Pro")
+# ---------- UI ----------
+st.markdown("# 🧠 Clinical Trial AI Assistant Pro")
 st.caption("AI-powered protocol analysis for Clinical Research Associates")
 
 uploaded_file = st.file_uploader("Upload Clinical Trial Protocol (PDF)", type="pdf")
@@ -96,44 +115,21 @@ if uploaded_file and st.button("Analyze"):
         st.error("Could not extract text from this PDF.")
     else:
         with st.spinner("Analyzing protocol..."):
+
+            # ---------- STRUCTURED SUMMARY ----------
             summary_prompt = f"""
-            You are an AI assistant helping a Clinical Research Associate.
-
-            Analyze this clinical trial protocol and return ONLY valid JSON.
-
-            Use this schema:
-
-            {{
-              "risk_score": "Low/Medium/High",
-              "study_complexity": "Low/Medium/High",
-              "retention_risk": "Low/Medium/High",
-              "complexity_rationale": ["..."],
-              "retention_rationale": ["..."],
-              "key_risks": ["..."],
-              "inclusion": ["..."],
-              "exclusion": ["..."],
-              "cra_priorities": ["..."],
-              "operational_challenges": ["..."]
-            }}
-
-            Rules:
-            - No explanation
-            - No markdown
-            - Only JSON
-            - Keep items short and practical
-            - All list items should be concise and CRA-relevant
-
-            Protocol:
-            {text}
-            """
 You are an AI assistant helping a Clinical Research Associate.
 
-Analyze the clinical trial protocol and return ONLY valid JSON.
+Analyze this clinical trial protocol and return ONLY valid JSON.
 
 Use this schema:
 
 {{
   "risk_score": "Low/Medium/High",
+  "study_complexity": "Low/Medium/High",
+  "retention_risk": "Low/Medium/High",
+  "complexity_rationale": ["..."],
+  "retention_rationale": ["..."],
   "key_risks": ["..."],
   "inclusion": ["..."],
   "exclusion": ["..."],
@@ -146,6 +142,7 @@ Rules:
 - No markdown
 - Only JSON
 - Keep items short and practical
+- All list items should be concise and CRA-relevant
 
 Protocol:
 {text}
@@ -178,7 +175,7 @@ Protocol:
             cra_priorities = summary_data.get("cra_priorities", [])
             operational_challenges = summary_data.get("operational_challenges", [])
 
-            # Score colors
+            # ---------- DASHBOARD ----------
             def score_color(score):
                 return {
                     "Low": "green",
@@ -188,76 +185,54 @@ Protocol:
 
             st.markdown("## 📊 Protocol Risk Dashboard")
 
-            col_a, col_b, col_c = st.columns(3)
+            col1, col2, col3 = st.columns(3)
+
+            col1.markdown(
+                f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
+                <h4>Overall Risk</h4>
+                <h2 style="color:{score_color(risk_score)};">{risk_score}</h2>
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+            col2.markdown(
+                f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
+                <h4>Study Complexity</h4>
+                <h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2>
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+            col3.markdown(
+                f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
+                <h4>Retention Risk</h4>
+                <h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2>
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+            col_r1, col_r2 = st.columns(2)
+
+            with col_r1:
+                st.markdown("### 🧩 Complexity Rationale")
+                if complexity_rationale:
+                    for item in complexity_rationale:
+                        st.markdown(f"• {item}")
+                else:
+                    st.write("No complexity rationale extracted.")
+
+            with col_r2:
+                st.markdown("### 🔁 Retention Rationale")
+                if retention_rationale:
+                    for item in retention_rationale:
+                        st.markdown(f"• {item}")
+                else:
+                    st.write("No retention rationale extracted.")
+
+            # ---------- STRUCTURED OUTPUT ----------
+            col_a, col_b = st.columns(2)
 
             with col_a:
-                st.markdown(f"""
-                <div style="
-                    padding:15px;
-                    border-radius:12px;
-                    background-color:#f5f5f5;
-                    text-align:center;
-                 ">
-                    <h4 style="margin:0;">Overall Risk</h4>
-                    <h2 style="color:{score_color(risk_score)};">{risk_score}</h2>
-                </div>
-                """,
-                unsafe_allow_html=True)
-
-           with col_b:
-               st.markdown(f"""
-               <div style="
-                   padding:15px;
-                   border-radius:12px;
-                   background-color:#f5f5f5;
-                   text-align:center;
-                ">
-                   <h4 style="margin:0;">Study Complexity</h4>
-                   <h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2>
-               </div>
-               """,
-               unsafe_allow_html=True)
-
-           with col_c:
-               st.markdown(f"""
-               <div style="
-                   padding:15px;
-                   border-radius:12px;
-                   background-color:#f5f5f5;
-                   text-align:center;
-                ">
-                   <h4 style="margin:0;">Retention Risk</h4>
-                   <h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2>
-                </div>
-                """, unsafe_allow_html=True)
-
-            # 🎨 Risk color logic
-            risk_color = {
-                "Low": "green",
-                "Medium": "orange",
-                "High": "red"
-            }.get(risk_score, "gray")
-
-            st.markdown("## 📊 Overall Risk Assessment")
-
-            st.markdown(f"""
-            <div style="
-            padding:20px;
-            border-radius:12px;
-            background-color:#f5f5f5;
-            text-align:center;
-            margin-bottom:20px;
-            ">
-            <h2 style="color:{risk_color}; margin:0;">
-                {risk_score}
-            </h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-            col1, col2 = st.columns(2)
-
-            with col1:
                 st.markdown("### ⚠️ Key Risks")
                 for r in key_risks:
                     st.markdown(f"• {r}")
@@ -266,6 +241,7 @@ Protocol:
                 for i in inclusion:
                     st.markdown(f"• {i}")
 
+            with col_b:
                 st.markdown("### 🚫 Exclusion Criteria")
                 for e in exclusion:
                     st.markdown(f"• {e}")
@@ -278,6 +254,7 @@ Protocol:
             for p in cra_priorities:
                 st.markdown(f"• {p}")
 
+            # ---------- CHECKLIST ----------
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
 
@@ -300,22 +277,37 @@ Protocol:
             checklist = checklist_response.choices[0].message.content
 
             st.markdown("## 🧪 Monitoring Visit Checklist")
-            st.markdown(checklist) 
+            st.markdown(checklist)
 
+            # ---------- Q&A ----------
             answer = ""
             if question:
-                qa_prompt = f"""
-Based on this protocol, answer the question:
-
-{question}
-
-Protocol:
-{text}
+                conversation_messages = [
+                    {
+                        "role": "system",
+                        "content": """
+You are an AI assistant helping a Clinical Research Associate understand a clinical trial protocol.
+Answer using only the provided protocol text.
+Be concise, clinically relevant, practical, and consistent with prior conversation context.
 """
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Protocol text:\n{text}"
+                    }
+                ]
+
+                for role, message in st.session_state.chat_history:
+                    if role == "You":
+                        conversation_messages.append({"role": "user", "content": message})
+                    else:
+                        conversation_messages.append({"role": "assistant", "content": message})
+
+                conversation_messages.append({"role": "user", "content": question})
 
                 qa_response = client.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": qa_prompt}],
+                    messages=conversation_messages
                 )
 
                 answer = qa_response.choices[0].message.content
@@ -324,19 +316,22 @@ Protocol:
                 st.session_state.chat_history.append(("Assistant", answer))
 
                 st.markdown("## 💬 Clinical Insight")
+                st.markdown(
+                    f"""
+<div style="padding:15px; border-radius:10px; background-color:#f0f8ff;">
+{answer}
+</div>
+""",
+                    unsafe_allow_html=True,
+                )
 
-                st.markdown(f"""
-                <div style="
-                    padding:15px;
-                    border-radius:10px;
-                    background-color:#f0f8ff;
-                 ">
-                 {answer}
-                 </div>
-                 """, unsafe_allow_html=True)
-
+            # ---------- PDF REPORT ----------
             pdf_data = build_pdf_report(
                 risk_score=risk_score,
+                study_complexity=study_complexity,
+                retention_risk=retention_risk,
+                complexity_rationale=complexity_rationale,
+                retention_rationale=retention_rationale,
                 key_risks=key_risks,
                 inclusion=inclusion,
                 exclusion=exclusion,
