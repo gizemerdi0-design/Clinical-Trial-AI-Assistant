@@ -29,12 +29,14 @@ def clean_pdf_text(text: str) -> str:
         .decode("latin-1")
     )
 
-def score_color(score):
+
+def score_color(score: str) -> str:
     return {
         "Low": "green",
         "Medium": "orange",
-        "High": "red"
+        "High": "red",
     }.get(score, "gray")
+
 
 def build_pdf_report(
     file_name,
@@ -119,8 +121,10 @@ def build_pdf_report(
 
     return pdf.output(dest="S").encode("latin-1")
 
+
 # ---------- UI ----------
-st.markdown("""
+st.markdown(
+    """
 <style>
 .block-container {
     padding-top: 2rem;
@@ -146,7 +150,9 @@ st.markdown("""
     border: 1px solid #dbeafe;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 st.markdown("# Clinical Trial AI Assistant Pro")
 st.caption("AI-powered protocol review and CRA decision support")
@@ -163,7 +169,9 @@ if uploaded_file and st.button("Analyze"):
 
     with pdfplumber.open(uploaded_file) as pdf:
         for page in pdf.pages:
-            text += page.extract_text() or ""
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
 
     if not text.strip():
         st.error("Could not extract text from this PDF.")
@@ -199,11 +207,13 @@ Rules:
 - No markdown
 - Only JSON
 - Keep items short and practical
+- All list items should be concise and CRA-relevant
+- protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
+- deviation_hotspots should list the areas most likely to generate protocol deviations
 
 Protocol:
 {text}
-""”
-
+"""
 
             summary_response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -245,7 +255,7 @@ Protocol:
                 <h4>Overall Risk</h4>
                 <h2 style="color:{score_color(risk_score)};">{risk_score}</h2>
                 </div>""",
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
             col2.markdown(
@@ -253,7 +263,7 @@ Protocol:
                 <h4>Study Complexity</h4>
                 <h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2>
                 </div>""",
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
             col3.markdown(
@@ -261,7 +271,7 @@ Protocol:
                 <h4>Retention Risk</h4>
                 <h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2>
                 </div>""",
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
             col4.markdown(
@@ -269,7 +279,7 @@ Protocol:
                 <h4>Deviation Risk</h4>
                 <h2 style="color:{score_color(protocol_deviation_risk)};">{protocol_deviation_risk}</h2>
                 </div>""",
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
             col_r1, col_r2, col_r3 = st.columns(3)
@@ -369,7 +379,7 @@ Protocol:
             st.markdown("## Monitoring Visit Checklist")
             st.markdown(
                 f'<div class="soft-box">{checklist}</div>',
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
             # ---------- Q&A ----------
@@ -387,7 +397,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                     {
                         "role": "user",
                         "content": f"Protocol text:\n{text}"
-                    }
+                    },
                 ]
 
                 for role, message in st.session_state.chat_history:
@@ -400,7 +410,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
 
                 qa_response = client.chat.completions.create(
                     model="gpt-4o-mini",
-                    messages=conversation_messages
+                    messages=conversation_messages,
                 )
 
                 answer = qa_response.choices[0].message.content
@@ -411,7 +421,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 st.markdown("## Clinical Insight")
                 st.markdown(
                     f'<div class="soft-box">{answer}</div>',
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
             # ---------- PDF ----------
