@@ -224,20 +224,24 @@ Protocol:
             risk_score = summary_data.get("risk_score", "Unknown")
             study_complexity = summary_data.get("study_complexity", "Unknown")
             retention_risk = summary_data.get("retention_risk", "Unknown")
+            protocol_deviation_risk = summary_data.get("protocol_deviation_risk", "Unknown")
 
             complexity_rationale = summary_data.get("complexity_rationale", [])
             retention_rationale = summary_data.get("retention_rationale", [])
+            deviation_rationale = summary_data.get("deviation_rationale", [])
+
 
             key_risks = summary_data.get("key_risks", [])
             inclusion = summary_data.get("inclusion", [])
             exclusion = summary_data.get("exclusion", [])
             cra_priorities = summary_data.get("cra_priorities", [])
             operational_challenges = summary_data.get("operational_challenges", [])
+            deviation_hotspots = summary_data.get("deviation_hotspots", [])
 
             # ---------- DASHBOARD ----------
             st.markdown("## Executive Risk Dashboard")
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
 
             col1.markdown(
                 f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
@@ -262,6 +266,16 @@ Protocol:
                 </div>""",
                 unsafe_allow_html=True
             )
+            
+            col4.markdown(
+                f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
+                <h4>Deviation Risk</h4>
+                <h2 style="color:{score_color(protocol_deviation_risk)};">{protocol_deviation_risk}</h2>
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+            
 
             col_r1, col_r2 = st.columns(2)
 
