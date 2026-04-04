@@ -355,7 +355,7 @@ Protocol:
 
             if deviation_hotspots:
                 for item in deviation_hotspots:
-            st.markdown(f"• {item}")
+                    st.markdown(f"• {item}")
             else:
                 st.write("No deviation hotspots extracted.")
 
