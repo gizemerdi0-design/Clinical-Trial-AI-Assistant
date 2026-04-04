@@ -41,20 +41,19 @@ def build_pdf_report(
     risk_score,
     study_complexity,
     retention_risk,
+    protocol_deviation_risk,
     complexity_rationale,
     retention_rationale,
+    deviation_rationale,
     key_risks,
     inclusion,
     exclusion,
     cra_priorities,
     operational_challenges,
+    deviation_hotspots,
     checklist,
     question,
     answer,
-    protocol_deviation_risk,
-    deviation_rationale,
-    deviation_hotspots,
-
 ):
     pdf = FPDF()
     pdf.add_page()
@@ -105,22 +104,20 @@ def build_pdf_report(
 
     add_section("Complexity Rationale", complexity_rationale)
     add_section("Retention Rationale", retention_rationale)
+    add_section("Deviation Rationale", deviation_rationale)
     add_section("Key Risks", key_risks)
     add_section("Inclusion Criteria", inclusion)
     add_section("Exclusion Criteria", exclusion)
     add_section("CRA Monitoring Priorities", cra_priorities)
     add_section("Operational Challenges", operational_challenges)
-    add_section("Monitoring Visit Checklist", checklist)
-    add_section("Deviation Rationale", deviation_rationale)
     add_section("Deviation Hotspots", deviation_hotspots)
-
+    add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
     safe_a = clean_pdf_text(answer)
     add_section("Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
 
     return pdf.output(dest="S").encode("latin-1")
-
 
 # ---------- UI ----------
 st.markdown("""
@@ -129,7 +126,6 @@ st.markdown("""
     padding-top: 2rem;
     padding-bottom: 2rem;
 }
-
 .card {
     background-color: #f8f9fb;
     padding: 18px;
@@ -137,14 +133,12 @@ st.markdown("""
     border: 1px solid #e6e8ef;
     margin-bottom: 16px;
 }
-
 .section-title {
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     color: #1f2937;
 }
-
 .soft-box {
     background-color: #f4f8ff;
     padding: 16px;
@@ -184,7 +178,7 @@ Analyze this clinical trial protocol and return ONLY valid JSON.
 
 Use this schema:
 
-{
+{{
   "risk_score": "Low/Medium/High",
   "study_complexity": "Low/Medium/High",
   "retention_risk": "Low/Medium/High",
@@ -198,8 +192,7 @@ Use this schema:
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
   "deviation_hotspots": ["..."]
-}
-
+}}
 
 Rules:
 - No explanation
@@ -209,7 +202,6 @@ Rules:
 - All list items should be concise and CRA-relevant
 - protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
 - deviation_hotspots should list the areas most likely to generate protocol deviations
-
 
 Protocol:
 {text}
@@ -237,7 +229,6 @@ Protocol:
             complexity_rationale = summary_data.get("complexity_rationale", [])
             retention_rationale = summary_data.get("retention_rationale", [])
             deviation_rationale = summary_data.get("deviation_rationale", [])
-
 
             key_risks = summary_data.get("key_risks", [])
             inclusion = summary_data.get("inclusion", [])
@@ -274,7 +265,7 @@ Protocol:
                 </div>""",
                 unsafe_allow_html=True
             )
-            
+
             col4.markdown(
                 f"""<div style="padding:15px; border-radius:12px; background-color:#f5f5f5; text-align:center;">
                 <h4>Deviation Risk</h4>
@@ -283,10 +274,7 @@ Protocol:
                 unsafe_allow_html=True
             )
 
-            
-
             col_r1, col_r2, col_r3 = st.columns(3)
-
 
             with col_r1:
                 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -307,7 +295,7 @@ Protocol:
                 else:
                     st.write("No retention rationale extracted.")
                 st.markdown("</div>", unsafe_allow_html=True)
-            
+
             with col_r3:
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown('<div class="section-title">Deviation Rationale</div>', unsafe_allow_html=True)
@@ -317,7 +305,6 @@ Protocol:
                 else:
                     st.write("No deviation rationale extracted.")
                 st.markdown("</div>", unsafe_allow_html=True)
-
 
             # ---------- STRUCTURED OUTPUT ----------
             col_a, col_b = st.columns(2)
@@ -352,15 +339,12 @@ Protocol:
 
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown('<div class="section-title">Deviation Hotspots</div>', unsafe_allow_html=True)
-
             if deviation_hotspots:
                 for item in deviation_hotspots:
                     st.markdown(f"• {item}")
             else:
                 st.write("No deviation hotspots extracted.")
-
             st.markdown("</div>", unsafe_allow_html=True)
-
 
             # ---------- CHECKLIST ----------
             checklist_prompt = f"""
@@ -438,16 +422,16 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 risk_score=risk_score,
                 study_complexity=study_complexity,
                 retention_risk=retention_risk,
+                protocol_deviation_risk=protocol_deviation_risk,
                 complexity_rationale=complexity_rationale,
                 retention_rationale=retention_rationale,
-                protocol_deviation_risk=protocol_deviation_risk,
                 deviation_rationale=deviation_rationale,
-                deviation_hotspots=deviation_hotspots,
                 key_risks=key_risks,
                 inclusion=inclusion,
                 exclusion=exclusion,
                 cra_priorities=cra_priorities,
                 operational_challenges=operational_challenges,
+                deviation_hotspots=deviation_hotspots,
                 checklist=checklist,
                 question=question,
                 answer=answer,
