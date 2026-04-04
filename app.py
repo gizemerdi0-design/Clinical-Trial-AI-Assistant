@@ -248,39 +248,41 @@ Protocol:
             # ---------- DASHBOARD ----------
             st.markdown("## Executive Risk Dashboard")
             # ---------- RISK HEATMAP ----------
-st.markdown("### Risk Distribution")
+            st.markdown("### Risk Distribution")
 
-risk_levels = {
-    "Low": 0,
-    "Medium": 0,
-    "High": 0
-}
+            risk_levels = {
+                "Low": 0,
+                "Medium": 0,
+                "High": 0
+            }
 
-for r in key_risks:
-    r_lower = r.lower()
-    if "high" in r_lower:
-        risk_levels["High"] += 1
-    elif "medium" in r_lower:
-        risk_levels["Medium"] += 1
-    else:
-        risk_levels["Low"] += 1
+            for r in key_risks:
+                r_lower = r.lower()
+                if "high" in r_lower:
+                    risk_levels["High"] += 1
+                elif "medium" in r_lower:
+                    risk_levels["Medium"] += 1
+                else:
+                    risk_levels["Low"] += 1
 
-total = sum(risk_levels.values()) or 1
+            total = sum(risk_levels.values()) or 1
 
-low_pct = int((risk_levels["Low"] / total) * 100)
-med_pct = int((risk_levels["Medium"] / total) * 100)
-high_pct = int((risk_levels["High"] / total) * 100)
+            low_pct = int((risk_levels["Low"] / total) * 100)
+            med_pct = int((risk_levels["Medium"] / total) * 100)
+            high_pct = int((risk_levels["High"] / total) * 100)
 
-st.markdown(f"""
-<div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
-  <div style="width:{low_pct}%; background-color:green;"></div>
-  <div style="width:{med_pct}%; background-color:orange;"></div>
-  <div style="width:{high_pct}%; background-color:red;"></div>
-</div>
-""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
+            <div style="width:{low_pct}%; background-color:green;"></div>
+            <div style="width:{med_pct}%; background-color:orange;"></div>
+            <div style="width:{high_pct}%; background-color:red;"></div>
+            </div>
+            """, unsafe_allow_html=True)
 
-st.caption(f"Low: {low_pct}% | Medium: {med_pct}% | High: {high_pct}%")
+            st.caption(f"Low: {low_pct}% | Medium: {med_pct}% | High: {high_pct}%")
 
+            
+           
 
             col1, col2, col3, col4 = st.columns(4)
 
