@@ -245,6 +245,19 @@ Protocol:
             operational_challenges = summary_data.get("operational_challenges", [])
             deviation_hotspots = summary_data.get("deviation_hotspots", [])
 
+            # ---------- SAVE REPORT ----------
+            if "reports" not in st.session_state:
+                st.session_state.reports = []
+
+            st.session_state.reports.append({
+                "file": uploaded_file.name,
+                "risk": risk_score,
+                "complexity": study_complexity,
+                "retention": retention_risk,
+                "deviation": protocol_deviation_risk
+            })
+
+
             # ---------- DASHBOARD ----------
             st.markdown("## Executive Risk Dashboard")
             # ---------- RISK HEATMAP ----------
