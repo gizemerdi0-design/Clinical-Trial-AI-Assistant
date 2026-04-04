@@ -51,6 +51,10 @@ def build_pdf_report(
     checklist,
     question,
     answer,
+    protocol_deviation_risk,
+    deviation_rationale,
+    deviation_hotspots,
+
 ):
     pdf = FPDF()
     pdf.add_page()
@@ -96,7 +100,8 @@ def build_pdf_report(
     pdf.cell(0, 7, clean_pdf_text(f"Overall Risk: {risk_score}"), ln=True)
     pdf.cell(0, 7, clean_pdf_text(f"Study Complexity: {study_complexity}"), ln=True)
     pdf.cell(0, 7, clean_pdf_text(f"Retention Risk: {retention_risk}"), ln=True)
-    pdf.ln(4)
+    pdf.cell(0, 7, clean_pdf_text(f"Deviation Risk: {protocol_deviation_risk}"), ln=True)
+    pdf.ln(6)
 
     add_section("Complexity Rationale", complexity_rationale)
     add_section("Retention Rationale", retention_rationale)
@@ -106,6 +111,9 @@ def build_pdf_report(
     add_section("CRA Monitoring Priorities", cra_priorities)
     add_section("Operational Challenges", operational_challenges)
     add_section("Monitoring Visit Checklist", checklist)
+    add_section("Deviation Rationale", deviation_rationale)
+    add_section("Deviation Hotspots", deviation_hotspots)
+
 
     safe_q = clean_pdf_text(question)
     safe_a = clean_pdf_text(answer)
@@ -277,7 +285,8 @@ Protocol:
 
             
 
-            col_r1, col_r2 = st.columns(2)
+            col_r1, col_r2, col_r3 = st.columns(3)
+
 
             with col_r1:
                 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -298,6 +307,17 @@ Protocol:
                 else:
                     st.write("No retention rationale extracted.")
                 st.markdown("</div>", unsafe_allow_html=True)
+            
+            with col_r3:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">Deviation Rationale</div>', unsafe_allow_html=True)
+                if deviation_rationale:
+                    for item in deviation_rationale:
+                        st.markdown(f"• {item}")
+                else:
+                    st.write("No deviation rationale extracted.")
+                st.markdown("</div>", unsafe_allow_html=True)
+
 
             # ---------- STRUCTURED OUTPUT ----------
             col_a, col_b = st.columns(2)
@@ -329,6 +349,18 @@ Protocol:
             for p in cra_priorities:
                 st.markdown(f"• {p}")
             st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Deviation Hotspots</div>', unsafe_allow_html=True)
+
+            if deviation_hotspots:
+                for item in deviation_hotspots:
+        st.markdown(f"• {item}")
+            else:
+                st.write("No deviation hotspots extracted.")
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
 
             # ---------- CHECKLIST ----------
             checklist_prompt = f"""
@@ -408,6 +440,9 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 retention_risk=retention_risk,
                 complexity_rationale=complexity_rationale,
                 retention_rationale=retention_rationale,
+                protocol_deviation_risk=protocol_deviation_risk,
+                deviation_rationale=deviation_rationale,
+                deviation_hotspots=deviation_hotspots,
                 key_risks=key_risks,
                 inclusion=inclusion,
                 exclusion=exclusion,
