@@ -176,18 +176,22 @@ Analyze this clinical trial protocol and return ONLY valid JSON.
 
 Use this schema:
 
-{{
+{
   "risk_score": "Low/Medium/High",
   "study_complexity": "Low/Medium/High",
   "retention_risk": "Low/Medium/High",
+  "protocol_deviation_risk": "Low/Medium/High",
   "complexity_rationale": ["..."],
   "retention_rationale": ["..."],
+  "deviation_rationale": ["..."],
   "key_risks": ["..."],
   "inclusion": ["..."],
   "exclusion": ["..."],
   "cra_priorities": ["..."],
-  "operational_challenges": ["..."]
-}}
+  "operational_challenges": ["..."],
+  "deviation_hotspots": ["..."]
+}
+
 
 Rules:
 - No explanation
@@ -195,6 +199,9 @@ Rules:
 - Only JSON
 - Keep items short and practical
 - All list items should be concise and CRA-relevant
+- protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
+- deviation_hotspots should list the areas most likely to generate protocol deviations
+
 
 Protocol:
 {text}
