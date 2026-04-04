@@ -158,6 +158,30 @@ st.markdown("# Clinical Trial AI Assistant Pro")
 st.caption("AI-powered protocol review and CRA decision support")
 st.markdown("---")
 
+# ---------- HISTORY PANEL ----------
+if "reports" in st.session_state and st.session_state.reports:
+    st.markdown("## 📂 Previous Analyses")
+
+    for r in st.session_state.reports[::-1]:
+        st.markdown(f"""
+        <div style="
+            padding:12px;
+            border-radius:12px;
+            background:#f5f5f5;
+            margin-bottom:10px;
+            border:1px solid #e5e7eb;
+        ">
+        📄 <b>{r['file']}</b><br>
+        <small>
+        Risk: <b>{r['risk']}</b> |
+        Complexity: <b>{r['complexity']}</b> |
+        Retention: <b>{r['retention']}</b> |
+        Deviation: <b>{r['deviation']}</b>
+        </small>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 uploaded_file = st.file_uploader("Upload protocol document", type="pdf")
 question = st.text_input("Enter a protocol question for CRA-focused analysis")
 
@@ -244,6 +268,17 @@ Protocol:
             cra_priorities = summary_data.get("cra_priorities", [])
             operational_challenges = summary_data.get("operational_challenges", [])
             deviation_hotspots = summary_data.get("deviation_hotspots", [])
+            if "reports" not in st.session_state:
+                st.session_state.reports = []
+
+            st.session_state.reports.append({
+                "file": uploaded_file.name,
+                "risk": risk_score,
+                "complexity": study_complexity,
+                "retention": retention_risk,
+                "deviation": protocol_deviation_risk
+            })
+
 
             # ---------- SAVE REPORT ----------
             if "reports" not in st.session_state:
