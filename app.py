@@ -199,13 +199,11 @@ Rules:
 - No markdown
 - Only JSON
 - Keep items short and practical
-- All list items should be concise and CRA-relevant
-- protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
-- deviation_hotspots should list the areas most likely to generate protocol deviations
 
 Protocol:
 {text}
-"""
+""”
+
 
             summary_response = client.chat.completions.create(
                 model="gpt-4o-mini",
