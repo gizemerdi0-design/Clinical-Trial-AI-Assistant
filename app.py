@@ -72,7 +72,18 @@ Protocol:
         messages=[{"role":"user","content":prompt}]
     )
 
-    data = json.loads(response.choices[0].message.content)
+    import re
+
+    raw_output = response.choices[0].message.content
+
+    try:
+        json_str = re.search(r'\{.*\}', raw_output, re.DOTALL).group()
+        data = json.loads(json_str)
+    except:
+        st.error("JSON parse edilemedi")
+        st.code(raw_output)
+        st.stop()
+
 
     st.session_state.protocol_text = text
 
