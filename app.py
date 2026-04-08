@@ -196,14 +196,12 @@ if st.session_state.reports:
         )
 
 uploaded_file = st.file_uploader("Upload protocol document", type="pdf")
-question = st.text_input("Enter a protocol question for CRA-focused analysis")
+question = st.text_input("Initial protocol question (optional, used in report export)")
 
-col_btn1, col_btn2, col_btn3 = st.columns(3)
+col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
-    ask_button = st.button("Ask")
-with col_btn2:
     analyze_button = st.button("Analyze")
-with col_btn3:
+with col_btn2:
     clear_button = st.button("Clear Chat")
 
 if clear_button:
@@ -268,7 +266,7 @@ Protocol:
             data = parse_json_safely(raw_output)
 
             if data is None:
-                st.error("Model JSON döndürmedi.")
+                st.error("Model did not return valid JSON.")
                 st.code(raw_output)
                 st.stop()
 
@@ -478,10 +476,14 @@ if st.session_state.analysis_result:
     st.markdown("## Monitoring Visit Checklist")
     st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
 
-    # ---------- ASK / Q&A ----------
+    # ---------- FOLLOW-UP ASK FORM ----------
     answer = ""
 
-    if question and ask_button:
+    with st.form("ask_form", clear_on_submit=True):
+        ask_question = st.text_input("Ask follow-up questions about the analyzed protocol")
+        ask_button = st.form_submit_button("Ask")
+
+    if ask_button and ask_question:
         messages = [
             {
                 "role": "system",
@@ -499,7 +501,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
                 {"role": "user" if role == "You" else "assistant", "content": msg}
             )
 
-        messages.append({"role": "user", "content": question})
+        messages.append({"role": "user", "content": ask_question})
 
         qa = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -507,7 +509,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         )
 
         answer = qa.choices[0].message.content
-        st.session_state.chat_history.append(("You", question))
+        st.session_state.chat_history.append(("You", ask_question))
         st.session_state.chat_history.append(("Assistant", answer))
 
     latest_answer = ""
@@ -519,6 +521,9 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         st.markdown(f'<div class="soft-box">{latest_answer}</div>', unsafe_allow_html=True)
 
     # ---------- PDF ----------
+    pdf_question = question if question else "No initial question provided."
+    pdf_answer = latest_answer if latest_answer else "No Q&A response generated yet."
+
     pdf_data = build_pdf_report(
         file_name=file_name,
         risk_score=risk_score,
@@ -535,8 +540,8 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         operational_challenges=operational_challenges,
         deviation_hotspots=deviation_hotspots,
         checklist=checklist,
-        question=question,
-        answer=latest_answer,
+        question=pdf_question,
+        answer=pdf_answer,
     )
 
     st.markdown("## Export")
