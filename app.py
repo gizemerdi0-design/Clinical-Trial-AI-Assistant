@@ -260,12 +260,12 @@ Use this schema:
   "operational_challenges": ["..."],
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
-  "monitoring_strategy": ["..."]
+  "monitoring_strategy": ["..."],
   "visit_schedule": [
     {
-    "visit_name": "...",
-    "timing": "...",
-    "activities": ["...", "..."],
+      "visit_name": "...",
+      "timing": "...",
+      "activities": ["...", "..."]
     }
 ]
 
