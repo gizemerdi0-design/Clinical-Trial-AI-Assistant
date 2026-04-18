@@ -250,6 +250,14 @@ Use this schema:
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."]
+  "visit_schedule": [
+  {
+    "visit_name": "...",
+    "timing": "...",
+    "activities": ["...", "..."]
+  }
+]
+
 }}
 
 Rules:
