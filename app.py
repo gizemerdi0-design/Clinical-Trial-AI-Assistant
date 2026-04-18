@@ -127,6 +127,7 @@ def build_pdf_report(
     add_section("CRA Monitoring Priorities", cra_priorities)
     add_section("Operational Challenges", operational_challenges)
     add_section("Deviation Hotspots", deviation_hotspots)
+    add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
@@ -242,6 +243,7 @@ Use this schema:
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
   "deviation_hotspots": ["..."]
+  "deviation_analysis": ["Visit 3: High risk due to tight visit window", "..."]
 }}
 
 Rules:
@@ -252,6 +254,8 @@ Rules:
 - All list items should be concise and CRA-relevant
 - protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
 - deviation_hotspots should list the areas most likely to generate protocol deviations
+- deviation_analysis should include visit-level and process-level deviation risks
+- highlight where sites are most likely to make mistakes
 
 Protocol:
 {text}
@@ -285,6 +289,7 @@ Protocol:
             cra_priorities = data.get("cra_priorities", [])
             operational_challenges = data.get("operational_challenges", [])
             deviation_hotspots = data.get("deviation_hotspots", [])
+            deviation_analysis = data.get("deviation_analysis", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -475,6 +480,15 @@ if st.session_state.analysis_result:
 
     st.markdown("## Monitoring Visit Checklist")
     st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-title">SMART Deviation Analysis</div>', unsafe_allow_html=True)
+
+    if deviation_analysis:
+        for item in deviation_analysis:
+            st.markdown(f"⚠️ {item}")
+    else:
+        st.write("No detailed deviation analysis extracted.")
+
 
     # ---------- FOLLOW-UP ASK FORM ----------
     answer = ""
