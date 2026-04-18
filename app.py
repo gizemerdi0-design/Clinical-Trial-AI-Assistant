@@ -272,6 +272,9 @@ Rules:
 - highlight where sites are most likely to make mistakes
 - monitoring_strategy should recommend visit frequency, monitoring intensity, and risk-based approach
 - suggestions should be practical and CRA-focused
+- visit_schedule should extract the main protocol visits with timing and key activities
+- keep visit names and timing concise
+- activities should be short and CRA-relevant
 
 Protocol:
 {text}
@@ -307,6 +310,7 @@ Protocol:
             deviation_hotspots = data.get("deviation_hotspots", [])
             deviation_analysis = data.get("deviation_analysis", [])
             monitoring_strategy = data.get("monitoring_strategy", [])
+            visit_schedule = data.get("visit_schedule", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -348,6 +352,7 @@ Protocol:
                 "deviation_analysis": deviation_analysis,
                 "monitoring_strategy": monitoring_strategy,
                 "checklist": checklist,
+                "visit_schedule": visit_schedule,
             }
 
             st.session_state.reports.append(
@@ -383,6 +388,7 @@ if st.session_state.analysis_result:
     deviation_analysis = data.get("deviation_analysis", [])
     monitoring_strategy = data.get("monitoring_strategy", [])
     checklist = data["checklist"]
+    visit_schedule = data.get("visit_schedule", [])
 
     st.markdown("## Executive Risk Dashboard")
 
@@ -512,6 +518,30 @@ if st.session_state.analysis_result:
         st.write("No detailed deviation analysis extracted.")
     st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Visit Schedule Extractor</div>', unsafe_allow_html=True)
+
+    if visit_schedule:
+        for visit in visit_schedule:
+            visit_name = visit.get("visit_name", "Unknown Visit")
+            timing = visit.get("timing", "Unknown Timing")
+            activities = visit.get("activities", [])
+
+            st.markdown(f"**{visit_name}** — {timing}")
+
+            if activities:
+                for act in activities:
+                    st.markdown(f"• {act}")
+            else:
+                st.markdown("• No activities extracted")
+
+            st.markdown("---")
+    else:
+    st.write("No visit schedule extracted.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    
     st.markdown("## Monitoring Visit Checklist")
     st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
 
