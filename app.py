@@ -537,7 +537,7 @@ if st.session_state.analysis_result:
 
             st.markdown("---")
     else:
-    st.write("No visit schedule extracted.")
+        st.write("No visit schedule extracted.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
