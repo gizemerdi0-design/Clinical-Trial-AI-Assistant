@@ -622,6 +622,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
+        visit_schedule=visit_schedule,
     )
 
     st.markdown("## Export")
