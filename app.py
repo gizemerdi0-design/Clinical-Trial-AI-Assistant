@@ -295,6 +295,7 @@ Protocol:
             deviation_hotspots = data.get("deviation_hotspots", [])
             deviation_analysis = data.get("deviation_analysis", [])
             monitoring_strategy = data.get("monitoring_strategy", [])
+            deviation_analysis = data.get("deviation_analysis", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
