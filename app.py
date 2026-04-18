@@ -129,6 +129,7 @@ def build_pdf_report(
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Visit Checklist", checklist)
+    add_section("Monitoring Strategy", monitoring_strategy)
 
     safe_q = clean_pdf_text(question)
     safe_a = clean_pdf_text(answer)
@@ -244,6 +245,7 @@ Use this schema:
   "operational_challenges": ["..."],
   "deviation_hotspots": ["..."]
   "deviation_analysis": ["Visit 3: High risk due to tight visit window", "..."]
+  "monitoring_strategy": ["High risk → monthly visits", "..."]
 }}
 
 Rules:
@@ -256,6 +258,8 @@ Rules:
 - deviation_hotspots should list the areas most likely to generate protocol deviations
 - deviation_analysis should include visit-level and process-level deviation risks
 - highlight where sites are most likely to make mistakes
+- monitoring_strategy should recommend visit frequency, monitoring intensity, and risk-based approach
+- suggestions should be practical and CRA-focused
 
 Protocol:
 {text}
@@ -290,6 +294,7 @@ Protocol:
             operational_challenges = data.get("operational_challenges", [])
             deviation_hotspots = data.get("deviation_hotspots", [])
             deviation_analysis = data.get("deviation_analysis", [])
+            monitoring_strategy = data.get("monitoring_strategy", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -488,6 +493,14 @@ if st.session_state.analysis_result:
             st.markdown(f"⚠️ {item}")
     else:
         st.write("No detailed deviation analysis extracted.")
+    st.markdown('<div class="section-title">Monitoring Strategy (AI Recommended)</div>', unsafe_allow_html=True)
+
+    if monitoring_strategy:
+        for item in monitoring_strategy:
+            st.markdown(f"🧠 {item}")
+    else:
+        st.write("No monitoring strategy generated.")
+
 
 
     # ---------- FOLLOW-UP ASK FORM ----------
