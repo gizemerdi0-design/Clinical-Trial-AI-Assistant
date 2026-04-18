@@ -71,10 +71,10 @@ def build_pdf_report(
     deviation_hotspots,
     deviation_analysis,
     monitoring_strategy,
+    visit_schedule,
     checklist,
     question,
     answer,
-    visit_schedule,
 ):
     pdf = FPDF()
     pdf.add_page()
@@ -134,6 +134,7 @@ def build_pdf_report(
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Strategy", monitoring_strategy)
+
     visit_lines = []
     for visit in visit_schedule:
         visit_name = visit.get("visit_name", "Unknown Visit")
@@ -143,7 +144,6 @@ def build_pdf_report(
         visit_lines.append(f"{visit_name} - {timing}: {activity_text}")
 
     add_section("Visit Schedule", visit_lines)
-
     add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
@@ -262,13 +262,12 @@ Use this schema:
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."],
   "visit_schedule": [
-    {
+    {{
       "visit_name": "...",
       "timing": "...",
       "activities": ["...", "..."]
-    }
+    }}
   ]
-
 }}
 
 Rules:
@@ -362,8 +361,8 @@ Protocol:
                 "deviation_hotspots": deviation_hotspots,
                 "deviation_analysis": deviation_analysis,
                 "monitoring_strategy": monitoring_strategy,
-                "checklist": checklist,
                 "visit_schedule": visit_schedule,
+                "checklist": checklist,
             }
 
             st.session_state.reports.append(
@@ -398,15 +397,14 @@ if st.session_state.analysis_result:
     deviation_hotspots = data["deviation_hotspots"]
     deviation_analysis = data.get("deviation_analysis", [])
     monitoring_strategy = data.get("monitoring_strategy", [])
-    checklist = data["checklist"]
     visit_schedule = data.get("visit_schedule", [])
+    checklist = data["checklist"]
 
     st.markdown("## Executive Risk Dashboard")
 
     st.markdown("### Risk Distribution")
 
     risk_levels = {"Low": 0, "Medium": 0, "High": 0}
-
     for r in key_risks:
         r_lower = r.lower()
         if "high" in r_lower:
@@ -436,22 +434,10 @@ if st.session_state.analysis_result:
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.markdown(
-        f"""<div class="risk-card"><h4>Overall Risk</h4><h2 style="color:{score_color(risk_score)};">{risk_score}</h2></div>""",
-        unsafe_allow_html=True,
-    )
-    col2.markdown(
-        f"""<div class="risk-card"><h4>Study Complexity</h4><h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2></div>""",
-        unsafe_allow_html=True,
-    )
-    col3.markdown(
-        f"""<div class="risk-card"><h4>Retention Risk</h4><h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2></div>""",
-        unsafe_allow_html=True,
-    )
-    col4.markdown(
-        f"""<div class="risk-card"><h4>Deviation Risk</h4><h2 style="color:{score_color(protocol_deviation_risk)};">{protocol_deviation_risk}</h2></div>""",
-        unsafe_allow_html=True,
-    )
+    col1.markdown(f"""<div class="risk-card"><h4>Overall Risk</h4><h2 style="color:{score_color(risk_score)};">{risk_score}</h2></div>""", unsafe_allow_html=True)
+    col2.markdown(f"""<div class="risk-card"><h4>Study Complexity</h4><h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2></div>""", unsafe_allow_html=True)
+    col3.markdown(f"""<div class="risk-card"><h4>Retention Risk</h4><h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2></div>""", unsafe_allow_html=True)
+    col4.markdown(f"""<div class="risk-card"><h4>Deviation Risk</h4><h2 style="color:{score_color(protocol_deviation_risk)};">{protocol_deviation_risk}</h2></div>""", unsafe_allow_html=True)
 
     col_r1, col_r2, col_r3 = st.columns(3)
 
@@ -552,7 +538,6 @@ if st.session_state.analysis_result:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    
     st.markdown("## Monitoring Visit Checklist")
     st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
 
@@ -619,10 +604,10 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         deviation_hotspots=deviation_hotspots,
         deviation_analysis=deviation_analysis,
         monitoring_strategy=monitoring_strategy,
+        visit_schedule=visit_schedule,
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
-        visit_schedule=visit_schedule,
     )
 
     st.markdown("## Export")
