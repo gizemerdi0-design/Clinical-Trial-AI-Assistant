@@ -262,11 +262,11 @@ Use this schema:
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."]
   "visit_schedule": [
-{
+    {
     "visit_name": "...",
     "timing": "...",
     "activities": ["...", "..."],
-}
+    }
 ]
 
 }}
