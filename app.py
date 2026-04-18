@@ -47,8 +47,10 @@ def parse_json_safely(raw_output):
         return json.loads(raw_output)
     except Exception:
         try:
-            json_str = re.search(r"\{.*\}", raw_output, re.DOTALL).group()
-            return json.loads(json_str)
+            match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+            return None
         except Exception:
             return None
 
@@ -67,6 +69,8 @@ def build_pdf_report(
     cra_priorities,
     operational_challenges,
     deviation_hotspots,
+    deviation_analysis,
+    monitoring_strategy,
     checklist,
     question,
     answer,
@@ -128,8 +132,8 @@ def build_pdf_report(
     add_section("Operational Challenges", operational_challenges)
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
-    add_section("Monitoring Visit Checklist", checklist)
     add_section("Monitoring Strategy", monitoring_strategy)
+    add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
     safe_a = clean_pdf_text(answer)
@@ -243,9 +247,9 @@ Use this schema:
   "exclusion": ["..."],
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
-  "deviation_hotspots": ["..."]
-  "deviation_analysis": ["Visit 3: High risk due to tight visit window", "..."]
-  "monitoring_strategy": ["High risk → monthly visits", "..."]
+  "deviation_hotspots": ["..."],
+  "deviation_analysis": ["..."],
+  "monitoring_strategy": ["..."]
 }}
 
 Rules:
@@ -295,7 +299,6 @@ Protocol:
             deviation_hotspots = data.get("deviation_hotspots", [])
             deviation_analysis = data.get("deviation_analysis", [])
             monitoring_strategy = data.get("monitoring_strategy", [])
-            deviation_analysis = data.get("deviation_analysis", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -334,6 +337,8 @@ Protocol:
                 "cra_priorities": cra_priorities,
                 "operational_challenges": operational_challenges,
                 "deviation_hotspots": deviation_hotspots,
+                "deviation_analysis": deviation_analysis,
+                "monitoring_strategy": monitoring_strategy,
                 "checklist": checklist,
             }
 
@@ -367,11 +372,12 @@ if st.session_state.analysis_result:
     cra_priorities = data["cra_priorities"]
     operational_challenges = data["operational_challenges"]
     deviation_hotspots = data["deviation_hotspots"]
+    deviation_analysis = data.get("deviation_analysis", [])
+    monitoring_strategy = data.get("monitoring_strategy", [])
     checklist = data["checklist"]
 
     st.markdown("## Executive Risk Dashboard")
 
-    # ---------- HEATMAP ----------
     st.markdown("### Risk Distribution")
 
     risk_levels = {"Low": 0, "Medium": 0, "High": 0}
@@ -473,6 +479,13 @@ if st.session_state.analysis_result:
     st.markdown('<div class="section-title">CRA Monitoring Priorities</div>', unsafe_allow_html=True)
     for p in cra_priorities:
         st.markdown(f"• {p}")
+
+    st.markdown('<div class="section-title">Monitoring Strategy (AI Recommended)</div>', unsafe_allow_html=True)
+    if monitoring_strategy:
+        for item in monitoring_strategy:
+            st.markdown(f"🧠 {item}")
+    else:
+        st.write("No monitoring strategy generated.")
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -482,29 +495,18 @@ if st.session_state.analysis_result:
             st.markdown(f"• {item}")
     else:
         st.write("No deviation hotspots extracted.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("## Monitoring Visit Checklist")
-    st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">SMART Deviation Analysis</div>', unsafe_allow_html=True)
-
     if deviation_analysis:
         for item in deviation_analysis:
             st.markdown(f"⚠️ {item}")
     else:
         st.write("No detailed deviation analysis extracted.")
-    st.markdown('<div class="section-title">Monitoring Strategy (AI Recommended)</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if monitoring_strategy:
-        for item in monitoring_strategy:
-            st.markdown(f"🧠 {item}")
-    else:
-        st.write("No monitoring strategy generated.")
+    st.markdown("## Monitoring Visit Checklist")
+    st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
 
-
-
-    # ---------- FOLLOW-UP ASK FORM ----------
     answer = ""
 
     with st.form("ask_form", clear_on_submit=True):
@@ -548,7 +550,6 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         st.markdown("## Clinical Insight")
         st.markdown(f'<div class="soft-box">{latest_answer}</div>', unsafe_allow_html=True)
 
-    # ---------- PDF ----------
     pdf_question = question if question else "No initial question provided."
     pdf_answer = latest_answer if latest_answer else "No Q&A response generated yet."
 
@@ -567,6 +568,8 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         cra_priorities=cra_priorities,
         operational_challenges=operational_challenges,
         deviation_hotspots=deviation_hotspots,
+        deviation_analysis=deviation_analysis,
+        monitoring_strategy=monitoring_strategy,
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
