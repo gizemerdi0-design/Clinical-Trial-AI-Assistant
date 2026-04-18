@@ -267,7 +267,7 @@ Use this schema:
       "timing": "...",
       "activities": ["...", "..."]
     }
-]
+  ]
 
 }}
 
