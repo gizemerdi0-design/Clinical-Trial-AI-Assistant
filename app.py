@@ -265,7 +265,7 @@ Use this schema:
   {
     "visit_name": "...",
     "timing": "...",
-    "activities": ["...", "..."]
+    "activities": ["...", "..."],
   }
 ]
 
