@@ -74,6 +74,7 @@ def build_pdf_report(
     checklist,
     question,
     answer,
+    visit_schedule,
 ):
     pdf = FPDF()
     pdf.add_page()
@@ -133,6 +134,16 @@ def build_pdf_report(
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Strategy", monitoring_strategy)
+    visit_lines = []
+    for visit in visit_schedule:
+        visit_name = visit.get("visit_name", "Unknown Visit")
+        timing = visit.get("timing", "Unknown Timing")
+        activities = visit.get("activities", [])
+        activity_text = ", ".join(activities) if activities else "No activities extracted"
+        visit_lines.append(f"{visit_name} - {timing}: {activity_text}")
+
+    add_section("Visit Schedule", visit_lines)
+
     add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
