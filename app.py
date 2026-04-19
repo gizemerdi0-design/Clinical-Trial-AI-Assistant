@@ -519,7 +519,25 @@ if st.session_state.analysis_result:
     st.markdown('<div class="section-title">Visit Timeline</div>', unsafe_allow_html=True)
 
     if visit_schedule:
-        for
+        for visit in visit_schedule:
+            visit_name = visit.get("visit_name", "Unknown Visit")
+            timing = visit.get("timing", "Unknown Timing")
+            activities = visit.get("activities", [])
+
+            st.markdown(f"""
+    <div style="border-left: 4px solid #6366f1; padding-left: 12px; margin-bottom: 12px;">
+        <b>{visit_name}</b> <span style="color:gray;">({timing})</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+            if activities:
+                for act in activities:
+                st.markdown(f"• {act}")
+    else:
+        st.write("No visit schedule extracted.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 
     st.markdown("</div>", unsafe_allow_html=True)
