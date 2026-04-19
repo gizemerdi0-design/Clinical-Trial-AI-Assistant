@@ -525,9 +525,9 @@ if st.session_state.analysis_result:
             activities = visit.get("activities", [])
 
             with st.expander(f"{visit_name} — {timing}"):
-                             if activities:
-                                 for act in activities:
-                                     st.markdown(f"""
+                if activities:
+                    for act in activities:
+                        st.markdown(f"""
     <div style="
         background-color:#eef2ff;
         padding:8px 10px;
