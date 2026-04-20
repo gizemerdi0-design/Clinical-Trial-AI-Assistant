@@ -573,7 +573,7 @@ if st.session_state.analysis_result:
             
                 st.markdown(f"**Risk Level:** {risk_level}")
                 if risk_reason:
-    st.markdown(f"_Reason:_ {risk_reason}")
+            st.markdown(f"_Reason:_ {risk_reason}")
 
                  if activities:
                      for act in activities:
