@@ -571,8 +571,8 @@ if st.session_state.analysis_result:
 
             with st.expander(f"{icon} {visit_name} — {timing}"):
             
-                 st.markdown(f"**Risk Level:** {risk_level}")
-                 if risk_reason:
+                st.markdown(f"**Risk Level:** {risk_level}")
+                if risk_reason:
     st.markdown(f"_Reason:_ {risk_reason}")
 
                  if activities:
