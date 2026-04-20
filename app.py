@@ -258,6 +258,7 @@ Use this schema:
   "exclusion": ["..."],
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
+  "site_action_items": ["..."]
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."],
@@ -285,6 +286,8 @@ Rules:
 - visit_schedule should extract the main protocol visits with timing and key activities
 - keep visit names and timing concise
 - activities should be short and CRA-relevant
+- site_action_items should list practical actions a CRA should communicate or reinforce with the site
+- keep items short, practical, and operational
 
 Protocol:
 {text}
@@ -321,6 +324,7 @@ Protocol:
             deviation_analysis = data.get("deviation_analysis", [])
             monitoring_strategy = data.get("monitoring_strategy", [])
             visit_schedule = data.get("visit_schedule", [])
+            site_action_items = data.get("site_action_items", [])
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -363,6 +367,7 @@ Protocol:
                 "monitoring_strategy": monitoring_strategy,
                 "visit_schedule": visit_schedule,
                 "checklist": checklist,
+                "site_action_items": site_action_items,
             }
 
             st.session_state.reports.append(
@@ -398,6 +403,7 @@ if st.session_state.analysis_result:
     deviation_analysis = data.get("deviation_analysis", [])
     monitoring_strategy = data.get("monitoring_strategy", [])
     visit_schedule = data.get("visit_schedule", [])
+    site_action_items = data.get("site_action_items", [])
     checklist = data["checklist"]
 
     st.markdown("## Executive Risk Dashboard")
@@ -544,6 +550,25 @@ if st.session_state.analysis_result:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Site-Facing Action Items</div>', unsafe_allow_html=True)
+
+    if site_action_items:
+        for item in site_action_items:
+            st.markdown(f"""
+    <div style="
+        background-color:#fef3c7;
+        padding:10px 12px;
+        border-radius:8px;
+        margin-bottom:8px;
+    ">
+        ✅ {item}
+    </div>
+    """, unsafe_allow_html=True)
+    else:
+        st.write("No site-facing action items extracted.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 
