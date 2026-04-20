@@ -66,6 +66,9 @@ def build_pdf_report(
     key_risks,
     inclusion,
     exclusion,
+    visit_schedule,
+    site_action_items,
+    checklist,
     cra_priorities,
     operational_challenges,
     deviation_hotspots,
@@ -135,6 +138,7 @@ def build_pdf_report(
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Strategy", monitoring_strategy)
+    add_section("Site-Facing Action Items", site_action_items)
     add_section("Site-Facing Action Items", site_action_items)
 
     visit_lines = []
