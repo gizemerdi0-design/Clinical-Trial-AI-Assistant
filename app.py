@@ -76,7 +76,6 @@ def build_pdf_report(
     monitoring_strategy,
     question,
     answer,
-    site_action_items,
 ):
     pdf = FPDF()
     pdf.add_page()
