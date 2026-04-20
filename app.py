@@ -147,6 +147,7 @@ def build_pdf_report(
         visit_lines.append(f"{visit_name} - {timing}: {activity_text}")
 
     add_section("Visit Schedule", visit_lines)
+    add_section("Site-Facing Action Items", site_action_items)
     add_section("Monitoring Visit Checklist", checklist)
 
     safe_q = clean_pdf_text(question)
@@ -328,6 +329,8 @@ Protocol:
             monitoring_strategy = data.get("monitoring_strategy", [])
             visit_schedule = data.get("visit_schedule", [])
             site_action_items = data.get("site_action_items", [])
+            checklist = data["checklist"]
+
 
             checklist_prompt = f"""
 You are a senior Clinical Research Associate.
@@ -645,6 +648,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         deviation_analysis=deviation_analysis,
         monitoring_strategy=monitoring_strategy,
         visit_schedule=visit_schedule,
+        site_action_items=site_action_items,
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
