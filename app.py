@@ -75,6 +75,7 @@ def build_pdf_report(
     checklist,
     question,
     answer,
+    site_action_items,
 ):
     pdf = FPDF()
     pdf.add_page()
@@ -134,6 +135,7 @@ def build_pdf_report(
     add_section("Deviation Hotspots", deviation_hotspots)
     add_section("SMART Deviation Analysis", deviation_analysis)
     add_section("Monitoring Strategy", monitoring_strategy)
+    add_section("Site-Facing Action Items", site_action_items)
 
     visit_lines = []
     for visit in visit_schedule:
@@ -645,6 +647,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
+        pdf_data = build_pdf_report(
     )
 
     st.markdown("## Export")
