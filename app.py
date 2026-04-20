@@ -647,7 +647,7 @@ Be concise, clinically relevant, practical, and consistent with prior conversati
         checklist=checklist,
         question=pdf_question,
         answer=pdf_answer,
-        pdf_data = build_pdf_report(
+        
     )
 
     st.markdown("## Export")
