@@ -243,70 +243,68 @@ if uploaded_file and analyze_button:
     else:
         with st.spinner("Analyzing protocol..."):
             summary_prompt = f"""
-You are an AI assistant helping a Clinical Research Associate.
+You are an AI assistant helping a Clinical Research Associate understand and operationalize a clinical trial protocol.
 
-Analyze this clinical trial protocol and return ONLY valid JSON.
+Analyze the protocol and return ONLY valid JSON.
 
 Use this schema:
 
-{
+{{
   "risk_score": "Low/Medium/High",
   "study_complexity": "Low/Medium/High",
   "retention_risk": "Low/Medium/High",
   "protocol_deviation_risk": "Low/Medium/High",
+
   "complexity_rationale": ["..."],
   "retention_rationale": ["..."],
   "deviation_rationale": ["..."],
+
   "key_risks": ["..."],
   "inclusion": ["..."],
   "exclusion": ["..."],
+
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
+
   "site_action_items": ["..."],
+
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
+
   "monitoring_strategy": ["..."],
+
   "visit_risk_flags": [
-    {
+    {{
       "visit_name": "...",
       "risk_level": "Low/Medium/High",
       "reason": "..."
-    }
+    }}
   ],
+
   "visit_schedule": [
-    {
+    {{
       "visit_name": "...",
       "timing": "...",
       "activities": ["...", "..."]
-    }
+    }}
   ]
-}
-
+}}
 
 Rules:
-- No explanation
+- Return ONLY valid JSON
+- No explanations
 - No markdown
-- Only JSON
-- Keep items short and practical
-- All list items should be concise and CRA-relevant
-- protocol_deviation_risk should reflect likelihood of site-level deviations based on protocol complexity, visit burden, eligibility complexity, and operational demands
-- deviation_hotspots should list the areas most likely to generate protocol deviations
-- deviation_analysis should include visit-level and process-level deviation risks
-- highlight where sites are most likely to make mistakes
-- monitoring_strategy should recommend visit frequency, monitoring intensity, and risk-based approach
-- suggestions should be practical and CRA-focused
-- visit_schedule should extract the main protocol visits with timing and key activities
-- keep visit names and timing concise
-- activities should be short and CRA-relevant
-- site_action_items should list practical actions a CRA should communicate or reinforce with the site
-- keep items short, practical, and operational
-- visit_risk_flags should identify which visits are most prone to protocol deviations
-- risk_level must be Low, Medium, or High
-- reason should be short and practical
+- risk_level must be exactly: Low, Medium, or High
+- Keep all outputs concise and practical
+- Focus on CRA-relevant insights
+- site_action_items should be actionable for site communication
+- visit_risk_flags should identify visits prone to deviations
+- visit_schedule should reflect realistic study flow
 
 Protocol:
 {text}
-"""
+""”
+
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
