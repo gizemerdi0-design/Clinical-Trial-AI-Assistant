@@ -300,6 +300,9 @@ Rules:
 - activities should be short and CRA-relevant
 - site_action_items should list practical actions a CRA should communicate or reinforce with the site
 - keep items short, practical, and operational
+- visit_risk_flags should identify which visits are most prone to protocol deviations
+- risk_level must be Low, Medium, or High
+- reason should be short and practical
 
 Protocol:
 {text}
@@ -336,6 +339,7 @@ Protocol:
             deviation_analysis = data.get("deviation_analysis", [])
             monitoring_strategy = data.get("monitoring_strategy", [])
             visit_schedule = data.get("visit_schedule", [])
+            visit_risk_flags = data.get("visit_risk_flags", [])
             site_action_items = data.get("site_action_items", [])
             checklist = data["checklist"]
 
@@ -382,6 +386,7 @@ Protocol:
                 "visit_schedule": visit_schedule,
                 "checklist": checklist,
                 "site_action_items": site_action_items,
+                "visit_risk_flags": visit_risk_flags,
             }
 
             st.session_state.reports.append(
@@ -417,6 +422,7 @@ if st.session_state.analysis_result:
     deviation_analysis = data.get("deviation_analysis", [])
     monitoring_strategy = data.get("monitoring_strategy", [])
     visit_schedule = data.get("visit_schedule", [])
+    visit_risk_flags = data.get("visit_risk_flags", [])
     site_action_items = data.get("site_action_items", [])
     checklist = data["checklist"]
 
@@ -538,16 +544,40 @@ if st.session_state.analysis_result:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Visit Timeline</div>', unsafe_allow_html=True)
 
+    def risk_icon(level):
+        return {
+            "High": "🔴",
+            "Medium": "🟡",
+            "Low": "🟢"
+         }.get(level, "⚪")
+
     if visit_schedule:
         for idx, visit in enumerate(visit_schedule, start=1):
             visit_name = visit.get("visit_name", f"Visit {idx}")
             timing = visit.get("timing", "Unknown Timing")
             activities = visit.get("activities", [])
 
-            with st.expander(f"{visit_name} — {timing}"):
-                if activities:
-                    for act in activities:
-                        st.markdown(f"""
+            # 👉 matching risk bul
+            risk_level = "Low"
+            risk_reason = ""
+
+            for r in visit_risk_flags:
+                if r.get("visit_name") == visit_name:
+                    risk_level = r.get("risk_level", "Low")
+                    risk_reason = r.get("reason", "")
+                    break
+
+            icon = risk_icon(risk_level)
+
+            with st.expander(f"{icon} {visit_name} — {timing}"):
+            
+                 st.markdown(f"**Risk Level:** {risk_level}")
+                 if risk_reason:
+     st.markdown(f"_Reason:_ {risk_reason}")
+
+                 if activities:
+                     for act in activities:
+                    st.markdown(f"""
     <div style="
         background-color:#eef2ff;
         padding:8px 10px;
@@ -559,10 +589,12 @@ if st.session_state.analysis_result:
     """, unsafe_allow_html=True)
                 else:
                     st.markdown("• No activities extracted")
+
     else:
         st.write("No visit schedule extracted.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Site-Facing Action Items</div>', unsafe_allow_html=True)
