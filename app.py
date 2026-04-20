@@ -266,6 +266,14 @@ Use this schema:
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."],
+  "visit_risk_flags": [
+    {
+      "visit_name": "...",
+      "risk_level": "Low/Medium/High",
+      "reason": "..."
+    }
+  ]
+
   "visit_schedule": [
     {{
       "visit_name": "...",
