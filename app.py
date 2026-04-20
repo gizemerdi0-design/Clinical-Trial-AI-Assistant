@@ -572,21 +572,21 @@ if st.session_state.analysis_result:
             with st.expander(f"{icon} {visit_name} — {timing}"):
             
                 st.markdown(f"**Risk Level:** {risk_level}")
-            if risk_reason:
-            st.markdown(f"_Reason:_ {risk_reason}")
+                if risk_reason:
+                    st.markdown(f"_Reason:_ {risk_reason}")
 
-                 if activities:
-                     for act in activities:
-                    st.markdown(f"""
-    <div style="
-        background-color:#eef2ff;
-        padding:8px 10px;
-        border-radius:8px;
-        margin-bottom:6px;
-    ">
-        • {act}
-    </div>
-    """, unsafe_allow_html=True)
+                if activities:
+                    for act in activities:
+                        st.markdown(f"""
+            <div style="
+                background-color:#eef2ff;
+                padding:8px 10px;
+                border-radius:8px;
+                margin-bottom:6px;
+            ">
+                • {act}
+            </div>
+            """, unsafe_allow_html=True)
                 else:
                     st.markdown("• No activities extracted")
 
