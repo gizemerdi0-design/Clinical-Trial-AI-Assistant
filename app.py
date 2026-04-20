@@ -249,7 +249,7 @@ Analyze this clinical trial protocol and return ONLY valid JSON.
 
 Use this schema:
 
-{{
+{
   "risk_score": "Low/Medium/High",
   "study_complexity": "Low/Medium/High",
   "retention_risk": "Low/Medium/High",
@@ -262,7 +262,7 @@ Use this schema:
   "exclusion": ["..."],
   "cra_priorities": ["..."],
   "operational_challenges": ["..."],
-  "site_action_items": ["..."]
+  "site_action_items": ["..."],
   "deviation_hotspots": ["..."],
   "deviation_analysis": ["..."],
   "monitoring_strategy": ["..."],
@@ -272,16 +272,16 @@ Use this schema:
       "risk_level": "Low/Medium/High",
       "reason": "..."
     }
-  ]
-
+  ],
   "visit_schedule": [
-    {{
+    {
       "visit_name": "...",
       "timing": "...",
       "activities": ["...", "..."]
-    }}
+    }
   ]
-}}
+}
+
 
 Rules:
 - No explanation
