@@ -74,7 +74,6 @@ def build_pdf_report(
     deviation_hotspots,
     deviation_analysis,
     monitoring_strategy,
-    checklist,
     question,
     answer,
     site_action_items,
