@@ -443,7 +443,7 @@ if st.session_state.analysis_result:
 
     st.markdown(
         f"""
-<div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
+  <div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
   <div style="width:{low_pct}%; background-color:green;"></div>
   <div style="width:{med_pct}%; background-color:orange;"></div>
   <div style="width:{high_pct}%; background-color:red;"></div>
