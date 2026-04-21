@@ -582,7 +582,7 @@ if st.session_state.analysis_result:
                                 padding:8px 10px;
                                 border-radius:8px;
                                 margin-bottom:6px;
-                            '>
+                            ">
                                 • {act}
                             </div>
                             """,
