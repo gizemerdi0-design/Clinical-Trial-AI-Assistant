@@ -442,7 +442,7 @@ if st.session_state.analysis_result:
     high_pct = int((risk_levels["High"] / total) * 100)
 
     st.markdown(
-        f"""
+f"""
 <div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
   <div style="width:{low_pct}%; background-color:green;"></div>
   <div style="width:{med_pct}%; background-color:orange;"></div>
