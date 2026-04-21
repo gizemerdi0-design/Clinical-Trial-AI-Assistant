@@ -585,6 +585,7 @@ if st.session_state.analysis_result:
                         • {act}
                         </div>
                         """, unsafe_allow_html=True)
+
                  else:
                      st.markdown("• No activities extracted")
 
