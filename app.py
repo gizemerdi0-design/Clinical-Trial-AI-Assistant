@@ -578,13 +578,14 @@ if st.session_state.analysis_result:
                         st.markdown(
                             f"""
                             <div style="background-color:#eef2ff; padding:8px 10px; border-radius:8px; margin-bottom:6px;">
-                                • {act}
+                                - {act}
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
                 else:
-                    st.markdown("• No activities extracted")
+                    st.markdown("- No activities extracted")
+
 
 
 
