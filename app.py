@@ -342,19 +342,17 @@ Protocol:
             checklist = data["checklist"]
 
 
-            checklist_prompt = f"""
-            You are a senior Clinical Research Associate.
+            checklist_prompt = (
+                "You are a senior Clinical Research Associate.\n\n"
+                "Based on this protocol, generate a Monitoring Visit Checklist including:\n"
+                "- Critical data points\n"
+                "- High-risk areas\n"
+                "- SDV priorities\n"
+                "- Patient safety checks\n"
+                "- Compliance risks\n\n"
+                f"Protocol:\n{text}"
+            )
 
-            Based on this protocol, generate a Monitoring Visit Checklist including:
-            - Critical data points
-            - High-risk areas
-            - SDV priorities
-            - Patient safety checks
-            - Compliance risks
-
-            Protocol:
-            {text}
-            """
 
             checklist_response = client.chat.completions.create(
                 model="gpt-4o-mini",
