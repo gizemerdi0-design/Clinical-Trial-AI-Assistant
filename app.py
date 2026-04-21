@@ -1,707 +1,458 @@
-import streamlit as st
-import pdfplumber
-from openai import OpenAI
-import json
-import os
-import re
-from fpdf import FPDF
-from datetime import datetime
+import os import json import re from io import BytesIO
 
-# ---------- API KEY ----------
-try:
-    api_key = st.secrets["OPENAI_API_KEY"]
-except Exception:
-    api_key = os.getenv("OPENAI_API_KEY")
+import pdfplumber import streamlit as st from openai import OpenAI from reportlab.lib.pagesizes import A4 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle from reportlab.lib.units import cm from reportlab.lib import colors from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
 
-client = OpenAI(api_key=api_key)
+=========================
 
-# ---------- SESSION ----------
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+PAGE CONFIG
 
-if "analysis_result" not in st.session_state:
-    st.session_state.analysis_result = None
+=========================
 
-if "protocol_text" not in st.session_state:
-    st.session_state.protocol_text = ""
+st.set_page_config(page_title="Clinical Trial AI Assistant Pro", layout="wide")
 
-if "reports" not in st.session_state:
-    st.session_state.reports = []
+=========================
 
-# ---------- HELPERS ----------
-def clean_pdf_text(text):
-    return (
-        str(text)
-        .replace("•", "-")
-        .replace("–", "-")
-        .replace("—", "-")
-        .encode("latin-1", "ignore")
-        .decode("latin-1")
+CUSTOM CSS
+
+=========================
+
+st.markdown( """ <style> .main-title { font-size: 34px; font-weight: 700; color: #1f3c88; margin-bottom: 0.2rem; } .subtitle { color: #5b6475; margin-bottom: 1.2rem; } .card { background-color: #ffffff; border: 1px solid #e7ebf3; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03); } .section-title { font-size: 24px; font-weight: 700; color: #22304a; margin-bottom: 10px; } .soft-box { background-color: #f6f8fc; border-radius: 12px; padding: 12px 14px; border: 1px solid #e7ebf3; margin-bottom: 8px; } .mini-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 8px; } .risk-low { background-color: #d9f7e8; color: #117a43; } .risk-medium { background-color: #fff4d6; color: #9a6700; } .risk-high { background-color: #fde1e1; color: #b42318; } </style> """, unsafe_allow_html=True, )
+
+=========================
+
+SESSION STATE
+
+=========================
+
+def init_session_state(): defaults = { "protocol_text": "", "analysis_result": None, "chat_history": [], "last_question": "", "last_answer": "", "uploaded_file_name": "", } for key, value in defaults.items(): if key not in st.session_state: st.session_state[key] = value
+
+init_session_state()
+
+=========================
+
+HELPERS
+
+=========================
+
+def get_client(): api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", "")) if not api_key: st.error("OPENAI_API_KEY not found. Add it to Streamlit secrets or environment variables.") st.stop() return OpenAI(api_key=api_key)
+
+client = get_client()
+
+def extract_pdf_text(uploaded_file) -> str: text_chunks = [] with pdfplumber.open(uploaded_file) as pdf: for page in pdf.pages: page_text = page.extract_text() if page_text: text_chunks.append(page_text) return "\n\n".join(text_chunks).strip()
+
+def safe_json_loads(text: str): text = text.strip() text = re.sub(r"^json", "", text) text = re.sub(r"^", "", text) text = re.sub(r"```$", "", text) text = text.strip() return json.loads(text)
+
+def ensure_list(value): if isinstance(value, list): return value if value is None: return [] if isinstance(value, str) and value.strip(): return [value.strip()] return []
+
+def ensure_visit_schedule(value): if not isinstance(value, list): return []
+
+clean_visits = []
+for item in value:
+    if not isinstance(item, dict):
+        continue
+    clean_visits.append(
+        {
+            "visit_name": str(item.get("visit_name", "Unknown Visit")),
+            "timing": str(item.get("timing", "Unknown Timing")),
+            "activities": ensure_list(item.get("activities", [])),
+        }
     )
+return clean_visits
 
-def score_color(score):
-    return {"Low": "green", "Medium": "orange", "High": "red"}.get(score, "gray")
+def ensure_visit_risk_flags(value): if not isinstance(value, list): return []
 
-def parse_json_safely(raw_output):
-    try:
-        return json.loads(raw_output)
-    except Exception:
-        try:
-            match = re.search(r"\{.*\}", raw_output, re.DOTALL)
-            if match:
-                return json.loads(match.group())
-            return None
-        except Exception:
-            return None
+clean_flags = []
+for item in value:
+    if not isinstance(item, dict):
+        continue
+    clean_flags.append(
+        {
+            "visit_name": str(item.get("visit_name", "Unknown Visit")),
+            "risk_level": str(item.get("risk_level", "Low")),
+            "reason": str(item.get("reason", "")),
+        }
+    )
+return clean_flags
 
-def build_pdf_report(
-    file_name,
-    risk_score,
-    study_complexity,
-    retention_risk,
-    protocol_deviation_risk,
-    complexity_rationale,
-    retention_rationale,
-    deviation_rationale,
-    key_risks,
-    inclusion,
-    exclusion,
-    visit_schedule,
-    site_action_items,
-    checklist,
-    cra_priorities,
-    operational_challenges,
-    deviation_hotspots,
-    deviation_analysis,
-    monitoring_strategy,
-    question,
-    answer,
-):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+def clean_pdf_text(text: str) -> str: if text is None: return "" return str(text).replace("•", "-").replace("–", "-").replace("—", "-")
 
-    def add_section(title, items):
-        pdf.set_font("Arial", "B", 13)
-        pdf.multi_cell(0, 8, clean_pdf_text(title))
-        pdf.set_font("Arial", "", 11)
+def risk_icon(risk_level: str) -> str: value = str(risk_level).strip().lower() if value == "high": return "🔴" if value == "medium": return "🟠" return "🟢"
 
-        if isinstance(items, list):
-            if items:
-                for item in items:
-                    pdf.multi_cell(0, 7, f"- {clean_pdf_text(item)}")
-            else:
-                pdf.multi_cell(0, 7, "No information extracted.")
-        else:
-            text = clean_pdf_text(items)
-            if text.strip():
-                pdf.multi_cell(0, 7, text)
-            else:
-                pdf.multi_cell(0, 7, "No information extracted.")
-        pdf.ln(3)
+def risk_badge_html(risk_level: str) -> str: value = str(risk_level).strip().lower() cls = "risk-low" label = "Low" if value == "high": cls = "risk-high" label = "High" elif value == "medium": cls = "risk-medium" label = "Medium" return f'<span class="mini-badge {cls}">{label}</span>'
 
-    report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+def build_analysis_prompt(protocol_text: str, user_question: str) -> str: question_block = user_question.strip() if user_question.strip() else "No initial question provided." return f""" You are an expert Clinical Research Associate assistant.
 
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Clinical Trial AI Assistant Pro", ln=True)
+Analyze the following clinical trial protocol and return ONLY valid JSON. No markdown. No explanations. No code block fences.
 
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 8, "CRA Protocol Review Report", ln=True)
-    pdf.ln(2)
+Required JSON schema: {{ "file_name": "string", "risk_score": "Low/Medium/High", "study_complexity": "Low/Medium/High", "retention_risk": "Low/Medium/High", "protocol_deviation_risk": "Low/Medium/High", "complexity_rationale": ["string", "string"], "retention_rationale": ["string", "string"], "deviation_rationale": ["string", "string"], "key_risks": ["string"], "inclusion": ["string"], "exclusion": ["string"], "cra_priorities": ["string"], "operational_challenges": ["string"], "site_action_items": ["string"], "deviation_hotspots": ["string"], "deviation_analysis": ["string"], "monitoring_strategy": ["string"], "visit_risk_flags": [ {{ "visit_name": "string", "risk_level": "Low/Medium/High", "reason": "string" }} ], "visit_schedule": [ {{ "visit_name": "string", "timing": "string", "activities": ["string"] }} ], "checklist": ["string"] }}
 
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 6, clean_pdf_text(f"Generated: {report_date}"), ln=True)
-    pdf.cell(0, 6, clean_pdf_text(f"Document: {file_name}"), ln=True)
-    pdf.ln(5)
+Guidance:
 
-    pdf.set_font("Arial", "B", 13)
-    pdf.cell(0, 8, "Executive Score Summary", ln=True)
+Keep outputs practical and CRA-focused.
 
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 7, clean_pdf_text(f"Overall Risk: {risk_score}"), ln=True)
-    pdf.cell(0, 7, clean_pdf_text(f"Study Complexity: {study_complexity}"), ln=True)
-    pdf.cell(0, 7, clean_pdf_text(f"Retention Risk: {retention_risk}"), ln=True)
-    pdf.cell(0, 7, clean_pdf_text(f"Deviation Risk: {protocol_deviation_risk}"), ln=True)
-    pdf.ln(6)
+Extract visit schedule only if present or strongly inferable from the protocol.
 
-    add_section("Complexity Rationale", complexity_rationale)
-    add_section("Retention Rationale", retention_rationale)
-    add_section("Deviation Rationale", deviation_rationale)
-    add_section("Key Risks", key_risks)
-    add_section("Inclusion Criteria", inclusion)
-    add_section("Exclusion Criteria", exclusion)
-    add_section("CRA Monitoring Priorities", cra_priorities)
-    add_section("Operational Challenges", operational_challenges)
-    add_section("Deviation Hotspots", deviation_hotspots)
-    add_section("SMART Deviation Analysis", deviation_analysis)
-    add_section("Monitoring Strategy", monitoring_strategy)
-    add_section("Site-Facing Action Items", site_action_items)
-    add_section("Site-Facing Action Items", site_action_items)
+Site action items should be actionable for site staff or site-facing monitoring follow-up.
 
-    visit_lines = []
+Deviation hotspots should focus on likely noncompliance or protocol deviation areas.
+
+Keep each bullet concise.
+
+If something is not available, return an empty list.
+
+
+Initial user question: {question_block}
+
+Protocol: {protocol_text} """.strip()
+
+def parse_analysis_result(raw_json_text: str, uploaded_file_name: str): data = safe_json_loads(raw_json_text)
+
+return {
+    "file_name": uploaded_file_name,
+    "risk_score": str(data.get("risk_score", "Low")),
+    "study_complexity": str(data.get("study_complexity", "Low")),
+    "retention_risk": str(data.get("retention_risk", "Low")),
+    "protocol_deviation_risk": str(data.get("protocol_deviation_risk", "Low")),
+    "complexity_rationale": ensure_list(data.get("complexity_rationale", [])),
+    "retention_rationale": ensure_list(data.get("retention_rationale", [])),
+    "deviation_rationale": ensure_list(data.get("deviation_rationale", [])),
+    "key_risks": ensure_list(data.get("key_risks", [])),
+    "inclusion": ensure_list(data.get("inclusion", [])),
+    "exclusion": ensure_list(data.get("exclusion", [])),
+    "cra_priorities": ensure_list(data.get("cra_priorities", [])),
+    "operational_challenges": ensure_list(data.get("operational_challenges", [])),
+    "site_action_items": ensure_list(data.get("site_action_items", [])),
+    "deviation_hotspots": ensure_list(data.get("deviation_hotspots", [])),
+    "deviation_analysis": ensure_list(data.get("deviation_analysis", [])),
+    "monitoring_strategy": ensure_list(data.get("monitoring_strategy", [])),
+    "visit_risk_flags": ensure_visit_risk_flags(data.get("visit_risk_flags", [])),
+    "visit_schedule": ensure_visit_schedule(data.get("visit_schedule", [])),
+    "checklist": ensure_list(data.get("checklist", [])),
+}
+
+def ask_protocol_question(protocol_text: str, analysis_result: dict, question: str, chat_history: list): summary_context = json.dumps(analysis_result, ensure_ascii=False)
+
+messages = [
+    {
+        "role": "system",
+        "content": (
+            "You are a Clinical Trial AI Assistant for Clinical Research Associates. "
+            "Answer only based on the uploaded protocol text and the extracted analysis summary. "
+            "If the answer is not supported, say so clearly."
+        ),
+    },
+    {
+        "role": "user",
+        "content": f"Protocol text:\n{protocol_text}\n\nExtracted analysis summary:\n{summary_context}",
+    },
+]
+
+for item in chat_history[-6:]:
+    messages.append({"role": "user", "content": item.get("question", "")})
+    messages.append({"role": "assistant", "content": item.get("answer", "")})
+
+messages.append({"role": "user", "content": question})
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=messages,
+    temperature=0.2,
+)
+return response.choices[0].message.content.strip()
+
+def add_section(story, styles, title, content): story.append(Paragraph(f"<b>{clean_pdf_text(title)}</b>", styles["section_header"])) story.append(Spacer(1, 0.15 * cm))
+
+if isinstance(content, list):
+    items = [clean_pdf_text(x) for x in content if str(x).strip()]
+    if items:
+        bullet_items = [
+            ListItem(Paragraph(item, styles["body"]), leftIndent=10) for item in items
+        ]
+        story.append(ListFlowable(bullet_items, bulletType="bullet"))
+    else:
+        story.append(Paragraph("No data available.", styles["body"]))
+else:
+    value = clean_pdf_text(content)
+    story.append(Paragraph(value if value else "No data available.", styles["body"]))
+
+story.append(Spacer(1, 0.25 * cm))
+
+def build_pdf_report(file_name, analysis_result, question, answer): buffer = BytesIO() doc = SimpleDocTemplate( buffer, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm, )
+
+base_styles = getSampleStyleSheet()
+styles = {
+    "title": ParagraphStyle(
+        "CustomTitle",
+        parent=base_styles["Heading1"],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#1f3c88"),
+        spaceAfter=12,
+    ),
+    "section_header": ParagraphStyle(
+        "SectionHeader",
+        parent=base_styles["Heading2"],
+        fontSize=13,
+        leading=16,
+        textColor=colors.HexColor("#22304a"),
+        spaceAfter=6,
+    ),
+    "body": ParagraphStyle(
+        "Body",
+        parent=base_styles["BodyText"],
+        fontSize=10,
+        leading=14,
+        spaceAfter=4,
+    ),
+}
+
+story = []
+story.append(Paragraph("Clinical Trial AI Assistant Report", styles["title"]))
+story.append(Paragraph(f"<b>Protocol File:</b> {clean_pdf_text(file_name)}", styles["body"]))
+story.append(Spacer(1, 0.2 * cm))
+
+dashboard_lines = [
+    f"Overall Risk Score: {analysis_result.get('risk_score', 'Low')}",
+    f"Study Complexity: {analysis_result.get('study_complexity', 'Low')}",
+    f"Retention Risk: {analysis_result.get('retention_risk', 'Low')}",
+    f"Protocol Deviation Risk: {analysis_result.get('protocol_deviation_risk', 'Low')}",
+]
+add_section(story, styles, "Executive Risk Dashboard", dashboard_lines)
+add_section(story, styles, "Protocol Overview", analysis_result.get("complexity_rationale", []))
+add_section(story, styles, "Retention Rationale", analysis_result.get("retention_rationale", []))
+add_section(story, styles, "Protocol Deviation Rationale", analysis_result.get("deviation_rationale", []))
+add_section(story, styles, "Key Risks", analysis_result.get("key_risks", []))
+add_section(story, styles, "Inclusion Criteria", analysis_result.get("inclusion", []))
+add_section(story, styles, "Exclusion Criteria", analysis_result.get("exclusion", []))
+add_section(story, styles, "CRA Monitoring Priorities", analysis_result.get("cra_priorities", []))
+add_section(story, styles, "Operational Challenges", analysis_result.get("operational_challenges", []))
+add_section(story, styles, "Site-Facing Action Items", analysis_result.get("site_action_items", []))
+add_section(story, styles, "Deviation Hotspots", analysis_result.get("deviation_hotspots", []))
+add_section(story, styles, "SMART Deviation Analysis", analysis_result.get("deviation_analysis", []))
+add_section(story, styles, "Monitoring Strategy", analysis_result.get("monitoring_strategy", []))
+
+visit_lines = []
+for visit in analysis_result.get("visit_schedule", []):
+    visit_name = visit.get("visit_name", "Unknown Visit")
+    timing = visit.get("timing", "Unknown Timing")
+    activities = visit.get("activities", [])
+    activity_text = ", ".join([clean_pdf_text(a) for a in activities]) if activities else "No activities extracted"
+    visit_lines.append(f"{visit_name} - {timing}: {activity_text}")
+add_section(story, styles, "Visit Schedule", visit_lines)
+
+risk_flag_lines = []
+for item in analysis_result.get("visit_risk_flags", []):
+    risk_flag_lines.append(
+        f"{item.get('visit_name', 'Unknown Visit')} - {item.get('risk_level', 'Low')}: {item.get('reason', '')}"
+    )
+add_section(story, styles, "Visit Risk Flags", risk_flag_lines)
+add_section(story, styles, "Monitoring Visit Checklist", analysis_result.get("checklist", []))
+
+safe_q = clean_pdf_text(question if question else "No initial protocol question provided.")
+safe_a = clean_pdf_text(answer if answer else "No follow-up answer generated.")
+add_section(story, styles, "Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
+
+doc.build(story)
+pdf_data = buffer.getvalue()
+buffer.close()
+return pdf_data
+
+def render_list_card(title, items): st.markdown('<div class="card">', unsafe_allow_html=True) st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True) if items: for item in items: st.markdown(f'<div class="soft-box">- {item}</div>', unsafe_allow_html=True) else: st.write("No data extracted.") st.markdown("</div>", unsafe_allow_html=True)
+
+=========================
+
+UI HEADER
+
+=========================
+
+st.markdown('<div class="main-title">🧠 Clinical Trial AI Assistant Pro</div>', unsafe_allow_html=True) st.markdown( '<div class="subtitle">AI-powered protocol analysis for Clinical Research Associates</div>', unsafe_allow_html=True, )
+
+=========================
+
+SIDEBAR
+
+=========================
+
+with st.sidebar: st.header("Settings") st.caption("Upload a protocol PDF, analyze it, ask follow-up questions, and export a report.")
+
+if st.button("Clear Chat / Reset Session"):
+    for key in [
+        "protocol_text",
+        "analysis_result",
+        "chat_history",
+        "last_question",
+        "last_answer",
+        "uploaded_file_name",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.rerun()
+
+=========================
+
+MAIN INPUTS
+
+=========================
+
+uploaded_file = st.file_uploader("Upload Clinical Trial PDF", type=["pdf"]) initial_question = st.text_input("Initial protocol question (optional, used in report export)")
+
+col_a, col_b = st.columns([1, 1]) with col_a: analyze_clicked = st.button("Analyze") with col_b: clear_chat_clicked = st.button("Clear Chat")
+
+if clear_chat_clicked: st.session_state.chat_history = [] st.session_state.last_question = "" st.session_state.last_answer = "" st.rerun()
+
+=========================
+
+ANALYZE
+
+=========================
+
+if analyze_clicked: if not uploaded_file: st.warning("Please upload a protocol PDF first.") else: with st.spinner("Extracting protocol text and generating CRA analysis..."): try: protocol_text = extract_pdf_text(uploaded_file) if not protocol_text: st.error("No readable text found in the PDF.") else: prompt = build_analysis_prompt(protocol_text, initial_question) response = client.chat.completions.create( model="gpt-4o-mini", messages=[ { "role": "system", "content": "Return only valid JSON matching the requested schema.", }, {"role": "user", "content": prompt}, ], temperature=0.2, ) raw_text = response.choices[0].message.content analysis_result = parse_analysis_result(raw_text, uploaded_file.name)
+
+st.session_state.protocol_text = protocol_text
+                st.session_state.analysis_result = analysis_result
+                st.session_state.uploaded_file_name = uploaded_file.name
+                st.session_state.last_question = initial_question.strip()
+                st.session_state.last_answer = ""
+        except Exception as e:
+            st.error(f"Analysis failed: {e}")
+
+=========================
+
+RENDER RESULTS
+
+=========================
+
+analysis_result = st.session_state.analysis_result protocol_text = st.session_state.protocol_text
+
+if analysis_result: file_name = analysis_result.get("file_name", st.session_state.uploaded_file_name) risk_score = analysis_result.get("risk_score", "Low") study_complexity = analysis_result.get("study_complexity", "Low") retention_risk = analysis_result.get("retention_risk", "Low") protocol_deviation_risk = analysis_result.get("protocol_deviation_risk", "Low")
+
+complexity_rationale = analysis_result.get("complexity_rationale", [])
+retention_rationale = analysis_result.get("retention_rationale", [])
+deviation_rationale = analysis_result.get("deviation_rationale", [])
+key_risks = analysis_result.get("key_risks", [])
+inclusion = analysis_result.get("inclusion", [])
+exclusion = analysis_result.get("exclusion", [])
+cra_priorities = analysis_result.get("cra_priorities", [])
+operational_challenges = analysis_result.get("operational_challenges", [])
+site_action_items = analysis_result.get("site_action_items", [])
+deviation_hotspots = analysis_result.get("deviation_hotspots", [])
+deviation_analysis = analysis_result.get("deviation_analysis", [])
+monitoring_strategy = analysis_result.get("monitoring_strategy", [])
+visit_schedule = analysis_result.get("visit_schedule", [])
+visit_risk_flags = analysis_result.get("visit_risk_flags", [])
+checklist = analysis_result.get("checklist", [])
+
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="section-title">## Executive Risk Dashboard</div>', unsafe_allow_html=True)
+st.markdown(f"**Protocol File:** {file_name}")
+st.markdown(risk_badge_html(risk_score) + risk_badge_html(study_complexity) + risk_badge_html(retention_risk) + risk_badge_html(protocol_deviation_risk), unsafe_allow_html=True)
+st.markdown(f"**📊 Risk Level:** {risk_score}")
+st.markdown(f"**Study Complexity:** {study_complexity}")
+st.markdown(f"**Retention Risk:** {retention_risk}")
+st.markdown(f"**Protocol Deviation Risk:** {protocol_deviation_risk}")
+st.markdown("</div>", unsafe_allow_html=True)
+
+render_list_card("📊 AI Clinical Summary", complexity_rationale)
+render_list_card("### 🧾 Protocol Overview", complexity_rationale)
+render_list_card("### ⚠️ Risks", key_risks)
+render_list_card("### 👥 Inclusion", inclusion)
+render_list_card("### 🚫 Exclusion", exclusion)
+render_list_card("### 🎯 CRA Monitoring Priorities", cra_priorities)
+render_list_card("### 🛠️ Operational Challenges", operational_challenges)
+render_list_card("### ✅ Site-Facing Action Items", site_action_items)
+render_list_card("### 🔬 Retention Rationale", retention_rationale)
+render_list_card("### 📍 Deviation Rationale", deviation_rationale)
+render_list_card("### 🔥 Deviation Hotspots", deviation_hotspots)
+render_list_card("SMART Deviation Analysis", deviation_analysis)
+render_list_card("Monitoring Strategy", monitoring_strategy)
+
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Visit Schedule Timeline</div>', unsafe_allow_html=True)
+if visit_schedule:
     for visit in visit_schedule:
         visit_name = visit.get("visit_name", "Unknown Visit")
         timing = visit.get("timing", "Unknown Timing")
         activities = visit.get("activities", [])
-        activity_text = ", ".join(activities) if activities else "No activities extracted"
-        visit_lines.append(f"{visit_name} - {timing}: {activity_text}")
 
-    add_section("Visit Schedule", visit_lines)
-    add_section("Site-Facing Action Items", site_action_items)
-    add_section("Monitoring Visit Checklist", checklist)
+        risk_level = "Low"
+        risk_reason = ""
+        for flag in visit_risk_flags:
+            if flag.get("visit_name", "").strip().lower() == visit_name.strip().lower():
+                risk_level = flag.get("risk_level", "Low")
+                risk_reason = flag.get("reason", "")
+                break
 
-    safe_q = clean_pdf_text(question)
-    safe_a = clean_pdf_text(answer)
-    add_section("Q&A", [f"Question: {safe_q}", f"Answer: {safe_a}"])
+        with st.expander(f"{risk_icon(risk_level)} {visit_name} - {timing}"):
+            st.markdown(f"**Risk Level:** {risk_level}")
+            if risk_reason:
+                st.markdown(f"_Reason:_ {risk_reason}")
+            if activities:
+                for act in activities:
+                    st.markdown(f'<div class="soft-box">- {act}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown("- No activities extracted")
+else:
+    st.write("No visit schedule extracted.")
+st.markdown("</div>", unsafe_allow_html=True)
 
-    return pdf.output(dest="S").encode("latin-1")
+render_list_card("Monitoring Visit Checklist", checklist)
 
-# ---------- UI ----------
-st.markdown(
-    """
-<style>
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-}
-.card {
-    background-color: #f8f9fb;
-    padding: 18px;
-    border-radius: 14px;
-    border: 1px solid #e6e8ef;
-    margin-bottom: 16px;
-}
-.section-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: #1f2937;
-}
-.soft-box {
-    background-color: #f4f8ff;
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #dbeafe;
-}
-.risk-card {
-    padding: 15px;
-    border-radius: 12px;
-    background-color: #f5f5f5;
-    text-align: center;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown('<div class="section-title">💬 Ask Follow-up Questions</div>', unsafe_allow_html=True)
+with st.form("ask_form", clear_on_submit=True):
+    ask_question = st.text_input("Ask follow-up questions about the analyzed protocol")
+    ask_button = st.form_submit_button("Ask")
 
-st.markdown("# Clinical Trial AI Assistant Pro")
-st.caption("AI-powered protocol review and CRA decision support")
-st.markdown("---")
-
-if st.session_state.reports:
-    st.markdown("## 📂 Previous Analyses")
-    for r in st.session_state.reports[::-1]:
-        st.markdown(
-            f"""
-            <div class="card">
-            📄 <b>{r['file']}</b><br>
-            <small>
-            Risk: <b>{r['risk']}</b> |
-            Complexity: <b>{r['complexity']}</b> |
-            Retention: <b>{r['retention']}</b> |
-            Deviation: <b>{r['deviation']}</b>
-            </small>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-uploaded_file = st.file_uploader("Upload protocol document", type="pdf")
-question = st.text_input("Initial protocol question (optional, used in report export)")
-
-col_btn1, col_btn2 = st.columns(2)
-with col_btn1:
-    analyze_button = st.button("Analyze")
-with col_btn2:
-    clear_button = st.button("Clear Chat")
-
-if clear_button:
-    st.session_state.chat_history = []
-
-# ---------- ANALYZE ----------
-if uploaded_file and analyze_button:
-    text = ""
-
-    with pdfplumber.open(uploaded_file) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-
-    if not text.strip():
-        st.error("Could not extract text from this PDF.")
+if ask_button:
+    if not ask_question.strip():
+        st.warning("Please type a question first.")
     else:
-        with st.spinner("Analyzing protocol..."):
-            summary_prompt = f"""
-You are an AI assistant helping a Clinical Research Associate understand and operationalize a clinical trial protocol.
-
-Analyze the protocol and return ONLY valid JSON.
-
-Use this schema:
-
-{{
-  "risk_score": "Low/Medium/High",
-  "study_complexity": "Low/Medium/High",
-  "retention_risk": "Low/Medium/High",
-  "protocol_deviation_risk": "Low/Medium/High",
-
-  "complexity_rationale": ["..."],
-  "retention_rationale": ["..."],
-  "deviation_rationale": ["..."],
-
-  "key_risks": ["..."],
-  "inclusion": ["..."],
-  "exclusion": ["..."],
-
-  "cra_priorities": ["..."],
-  "operational_challenges": ["..."],
-
-  "site_action_items": ["..."],
-
-  "deviation_hotspots": ["..."],
-  "deviation_analysis": ["..."],
-
-  "monitoring_strategy": ["..."],
-
-  "visit_risk_flags": [
-    {{
-      "visit_name": "...",
-      "risk_level": "Low/Medium/High",
-      "reason": "..."
-    }}
-  ],
-
-  "visit_schedule": [
-    {{
-      "visit_name": "...",
-      "timing": "...",
-      "activities": ["...", "..."]
-    }}
-  ]
-}}
-
-Rules:
-- Return ONLY valid JSON
-- No explanations
-- No markdown
-- risk_level must be exactly: Low, Medium, or High
-- Keep all outputs concise and practical
-- Focus on CRA-relevant insights
-- site_action_items should be actionable for site communication
-- visit_risk_flags should identify visits prone to deviations
-- visit_schedule should reflect realistic study flow
-
-Protocol:
-{text}
-""”
-
-
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": summary_prompt}],
-            )
-
-            raw_output = response.choices[0].message.content
-            data = parse_json_safely(raw_output)
-
-            if data is None:
-                st.error("Model did not return valid JSON.")
-                st.code(raw_output)
-                st.stop()
-
-            risk_score = data.get("risk_score", "Unknown")
-            study_complexity = data.get("study_complexity", "Unknown")
-            retention_risk = data.get("retention_risk", "Unknown")
-            protocol_deviation_risk = data.get("protocol_deviation_risk", "Unknown")
-
-            complexity_rationale = data.get("complexity_rationale", [])
-            retention_rationale = data.get("retention_rationale", [])
-            deviation_rationale = data.get("deviation_rationale", [])
-
-            key_risks = data.get("key_risks", [])
-            inclusion = data.get("inclusion", [])
-            exclusion = data.get("exclusion", [])
-            cra_priorities = data.get("cra_priorities", [])
-            operational_challenges = data.get("operational_challenges", [])
-            deviation_hotspots = data.get("deviation_hotspots", [])
-            deviation_analysis = data.get("deviation_analysis", [])
-            monitoring_strategy = data.get("monitoring_strategy", [])
-            visit_schedule = data.get("visit_schedule", [])
-            visit_risk_flags = data.get("visit_risk_flags", [])
-            site_action_items = data.get("site_action_items", [])
-            checklist = data["checklist"]
-
-
-            checklist_prompt = (
-                "You are a senior Clinical Research Associate.\n\n"
-                "Based on this protocol, generate a Monitoring Visit Checklist including:\n"
-                "- Critical data points\n"
-                "- High-risk areas\n"
-                "- SDV priorities\n"
-                "- Patient safety checks\n"
-                "- Compliance risks\n\n"
-                f"Protocol:\n{text}"
-            )
-
-
-            checklist_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": checklist_prompt}],
-            )
-
-            checklist = checklist_response.choices[0].message.content
-
-            st.session_state.protocol_text = text
-            st.session_state.analysis_result = {
-                "file_name": uploaded_file.name,
-                "risk_score": risk_score,
-                "study_complexity": study_complexity,
-                "retention_risk": retention_risk,
-                "protocol_deviation_risk": protocol_deviation_risk,
-                "complexity_rationale": complexity_rationale,
-                "retention_rationale": retention_rationale,
-                "deviation_rationale": deviation_rationale,
-                "key_risks": key_risks,
-                "inclusion": inclusion,
-                "exclusion": exclusion,
-                "cra_priorities": cra_priorities,
-                "operational_challenges": operational_challenges,
-                "deviation_hotspots": deviation_hotspots,
-                "deviation_analysis": deviation_analysis,
-                "monitoring_strategy": monitoring_strategy,
-                "visit_schedule": visit_schedule,
-                "checklist": checklist,
-                "site_action_items": site_action_items,
-                "visit_risk_flags": visit_risk_flags,
-            }
-
-            st.session_state.reports.append(
-                {
-                    "file": uploaded_file.name,
-                    "risk": risk_score,
-                    "complexity": study_complexity,
-                    "retention": retention_risk,
-                    "deviation": protocol_deviation_risk,
-                }
-            )
-
-# ---------- DISPLAY ANALYSIS ----------
-if st.session_state.analysis_result:
-    data = st.session_state.analysis_result
-
-    file_name = data["file_name"]
-    risk_score = data["risk_score"]
-    study_complexity = data["study_complexity"]
-    retention_risk = data["retention_risk"]
-    protocol_deviation_risk = data["protocol_deviation_risk"]
-
-    complexity_rationale = data["complexity_rationale"]
-    retention_rationale = data["retention_rationale"]
-    deviation_rationale = data["deviation_rationale"]
-
-    key_risks = data["key_risks"]
-    inclusion = data["inclusion"]
-    exclusion = data["exclusion"]
-    cra_priorities = data["cra_priorities"]
-    operational_challenges = data["operational_challenges"]
-    deviation_hotspots = data["deviation_hotspots"]
-    deviation_analysis = data.get("deviation_analysis", [])
-    monitoring_strategy = data.get("monitoring_strategy", [])
-    visit_schedule = data.get("visit_schedule", [])
-    visit_risk_flags = data.get("visit_risk_flags", [])
-    site_action_items = data.get("site_action_items", [])
-    checklist = data["checklist"]
-
-    st.markdown("## Executive Risk Dashboard")
-
-    st.markdown("### Risk Distribution")
-
-    risk_levels = {"Low": 0, "Medium": 0, "High": 0}
-    for r in key_risks:
-        r_lower = r.lower()
-        if "high" in r_lower:
-            risk_levels["High"] += 1
-        elif "medium" in r_lower:
-            risk_levels["Medium"] += 1
-        else:
-            risk_levels["Low"] += 1
-
-    total = sum(risk_levels.values()) or 1
-    low_pct = int((risk_levels["Low"] / total) * 100)
-    med_pct = int((risk_levels["Medium"] / total) * 100)
-    high_pct = int((risk_levels["High"] / total) * 100)
-
-    st.markdown(
-f"""
-<div style="display:flex; height:20px; border-radius:10px; overflow:hidden; margin-bottom:10px;">
-  <div style="width:{low_pct}%; background-color:green;"></div>
-  <div style="width:{med_pct}%; background-color:orange;"></div>
-  <div style="width:{high_pct}%; background-color:red;"></div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-    st.caption(f"Low: {low_pct}% | Medium: {med_pct}% | High: {high_pct}%")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.markdown(f"""<div class="risk-card"><h4>Overall Risk</h4><h2 style="color:{score_color(risk_score)};">{risk_score}</h2></div>""", unsafe_allow_html=True)
-    col2.markdown(f"""<div class="risk-card"><h4>Study Complexity</h4><h2 style="color:{score_color(study_complexity)};">{study_complexity}</h2></div>""", unsafe_allow_html=True)
-    col3.markdown(f"""<div class="risk-card"><h4>Retention Risk</h4><h2 style="color:{score_color(retention_risk)};">{retention_risk}</h2></div>""", unsafe_allow_html=True)
-    col4.markdown(f"""<div class="risk-card"><h4>Deviation Risk</h4><h2 style="color:{score_color(protocol_deviation_risk)};">{protocol_deviation_risk}</h2></div>""", unsafe_allow_html=True)
-
-    col_r1, col_r2, col_r3 = st.columns(3)
-
-    with col_r1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Complexity Rationale</div>', unsafe_allow_html=True)
-        for item in complexity_rationale:
-            st.markdown(f"• {item}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_r2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Retention Rationale</div>', unsafe_allow_html=True)
-        for item in retention_rationale:
-            st.markdown(f"• {item}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_r3:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Deviation Rationale</div>', unsafe_allow_html=True)
-        for item in deviation_rationale:
-            st.markdown(f"• {item}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Key Risks</div>', unsafe_allow_html=True)
-        for r in key_risks:
-            st.markdown(f"⚠️ {r}")
-
-        st.markdown('<div class="section-title">Inclusion Criteria</div>', unsafe_allow_html=True)
-        for i in inclusion:
-            st.markdown(f"• {i}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_b:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Exclusion Criteria</div>', unsafe_allow_html=True)
-        for e in exclusion:
-            st.markdown(f"• {e}")
-
-        st.markdown('<div class="section-title">Operational Challenges</div>', unsafe_allow_html=True)
-        for c in operational_challenges:
-            st.markdown(f"• {c}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">CRA Monitoring Priorities</div>', unsafe_allow_html=True)
-    for p in cra_priorities:
-        st.markdown(f"• {p}")
-
-    st.markdown('<div class="section-title">Monitoring Strategy (AI Recommended)</div>', unsafe_allow_html=True)
-    if monitoring_strategy:
-        for item in monitoring_strategy:
-            st.markdown(f"🧠 {item}")
-    else:
-        st.write("No monitoring strategy generated.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Deviation Hotspots</div>', unsafe_allow_html=True)
-    if deviation_hotspots:
-        for item in deviation_hotspots:
-            st.markdown(f"• {item}")
-    else:
-        st.write("No deviation hotspots extracted.")
-
-    st.markdown('<div class="section-title">SMART Deviation Analysis</div>', unsafe_allow_html=True)
-    if deviation_analysis:
-        for item in deviation_analysis:
-            st.markdown(f"⚠️ {item}")
-    else:
-        st.write("No detailed deviation analysis extracted.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Visit Timeline</div>', unsafe_allow_html=True)
-
-    def risk_icon(level):
-        return {
-            "High": "🔴",
-            "Medium": "🟡",
-            "Low": "🟢"
-         }.get(level, "⚪")
-
-    if visit_schedule:
-        for idx, visit in enumerate(visit_schedule, start=1):
-            visit_name = visit.get("visit_name", f"Visit {idx}")
-            timing = visit.get("timing", "Unknown Timing")
-            activities = visit.get("activities", [])
-
-            # 👉 matching risk bul
-            risk_level = "Low"
-            risk_reason = ""
-
-            for r in visit_risk_flags:
-                if r.get("visit_name") == visit_name:
-                    risk_level = r.get("risk_level", "Low")
-                    risk_reason = r.get("reason", "")
-                    break
-
-            icon = risk_icon(risk_level)
-
-            with st.expander(f"{icon} {visit_name} — {timing}"):
-            
-                st.markdown(f"**Risk Level:** {risk_level}")
-                if risk_reason:
-                    st.markdown(f"_Reason:_ {risk_reason}")
-
-                if activities:
-                    for act in activities:
-                        st.markdown(
-                            f"""
-                            <div style="background-color:#eef2ff; padding:8px 10px; border-radius:8px; margin-bottom:6px;">
-                                - {act}
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                else:
-                    st.markdown("- No activities extracted")
-
-
-
-
-
-    else:
-        st.write("No visit schedule extracted.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Site-Facing Action Items</div>', unsafe_allow_html=True)
-
-    if site_action_items:
-        for item in site_action_items:
-            st.markdown(f"""
-    <div style="
-        background-color:#fef3c7;
-        padding:10px 12px;
-        border-radius:8px;
-        margin-bottom:8px;
-    ">
-        ✅ {item}
-    </div>
-    """, unsafe_allow_html=True)
-    else:
-        st.write("No site-facing action items extracted.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("## Monitoring Visit Checklist")
-    st.markdown(f'<div class="soft-box">{checklist}</div>', unsafe_allow_html=True)
-
-    answer = ""
-
-    with st.form("ask_form", clear_on_submit=True):
-        ask_question = st.text_input("Ask follow-up questions about the analyzed protocol")
-        ask_button = st.form_submit_button("Ask")
-
-    if ask_button and ask_question:
-        messages = [
-            {
-                "role": "system",
-                "content": """
-You are an AI assistant helping a Clinical Research Associate understand a clinical trial protocol.
-Answer using only the provided protocol text.
-Be concise, clinically relevant, practical, and consistent with prior conversation context.
-""",
-            },
-            {"role": "user", "content": f"Protocol text:\n{st.session_state.protocol_text}"},
-        ]
-
-        for role, msg in st.session_state.chat_history:
-            messages.append(
-                {"role": "user" if role == "You" else "assistant", "content": msg}
-            )
-
-        messages.append({"role": "user", "content": ask_question})
-
-        qa = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-        )
-
-        answer = qa.choices[0].message.content
-        st.session_state.chat_history.append(("You", ask_question))
-        st.session_state.chat_history.append(("Assistant", answer))
-
-    latest_answer = ""
-    if st.session_state.chat_history and st.session_state.chat_history[-1][0] == "Assistant":
-        latest_answer = st.session_state.chat_history[-1][1]
-
-    if latest_answer:
-        st.markdown("## Clinical Insight")
-        st.markdown(f'<div class="soft-box">{latest_answer}</div>', unsafe_allow_html=True)
-
-    pdf_question = question if question else "No initial question provided."
-    pdf_answer = latest_answer if latest_answer else "No Q&A response generated yet."
-
+        with st.spinner("Generating answer..."):
+            try:
+                answer = ask_protocol_question(
+                    protocol_text=protocol_text,
+                    analysis_result=analysis_result,
+                    question=ask_question,
+                    chat_history=st.session_state.chat_history,
+                )
+                st.session_state.chat_history.append(
+                    {"question": ask_question.strip(), "answer": answer}
+                )
+                st.session_state.last_question = ask_question.strip()
+                st.session_state.last_answer = answer
+                st.rerun()
+            except Exception as e:
+                st.error(f"Q&A failed: {e}")
+
+if st.session_state.last_answer:
+    st.markdown("**💬 Answer**")
+    st.write(st.session_state.last_answer)
+
+if st.session_state.chat_history:
+    st.markdown("**🗂️ Chat History**")
+    for item in reversed(st.session_state.chat_history):
+        st.markdown(f"🧑‍💼 **You:** {item['question']}")
+        st.markdown(f"🤖 **Assistant:** {item['answer']}")
+        st.markdown("---")
+st.markdown("</div>", unsafe_allow_html=True)
+
+pdf_question = st.session_state.last_question or initial_question.strip() or "No initial protocol question provided."
+pdf_answer = st.session_state.last_answer or "No follow-up answer generated."
+
+try:
     pdf_data = build_pdf_report(
         file_name=file_name,
-        risk_score=risk_score,
-        study_complexity=study_complexity,
-        retention_risk=retention_risk,
-        protocol_deviation_risk=protocol_deviation_risk,
-        complexity_rationale=complexity_rationale,
-        retention_rationale=retention_rationale,
-        deviation_rationale=deviation_rationale,
-        key_risks=key_risks,
-        inclusion=inclusion,
-        exclusion=exclusion,
-        cra_priorities=cra_priorities,
-        operational_challenges=operational_challenges,
-        deviation_hotspots=deviation_hotspots,
-        deviation_analysis=deviation_analysis,
-        monitoring_strategy=monitoring_strategy,
-        visit_schedule=visit_schedule,
-        site_action_items=site_action_items,
-        checklist=checklist,
+        analysis_result=analysis_result,
         question=pdf_question,
         answer=pdf_answer,
-        
     )
-
-    st.markdown("## Export")
     st.download_button(
-        label="📥 Download CRA Report (PDF)",
+        label="📥 Download CRA Report",
         data=pdf_data,
-        file_name=f"{file_name.rsplit('.', 1)[0]}_CRA_Report.pdf",
+        file_name="cra_protocol_review_report.pdf",
         mime="application/pdf",
     )
+except Exception as e:
+    st.error(f"PDF generation failed: {e}")
 
-    if st.session_state.chat_history:
-        st.subheader("Conversation History")
-        for role, msg in st.session_state.chat_history:
-            st.write(f"{role}: {msg}")
+else: st.info("Upload a protocol PDF and click Analyze to generate your CRA summary.")
