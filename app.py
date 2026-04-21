@@ -577,7 +577,7 @@ if st.session_state.analysis_result:
                     for act in activities:
                         st.markdown(
                             f"""
-                            <div style='
+                            <div style="
                 background-color:#eef2ff;
                                 padding:8px 10px;
                                 border-radius:8px;
