@@ -343,18 +343,18 @@ Protocol:
 
 
             checklist_prompt = f"""
-You are a senior Clinical Research Associate.
+            You are a senior Clinical Research Associate.
 
-Based on this protocol, generate a Monitoring Visit Checklist including:
-- Critical data points
-- High-risk areas
-- SDV priorities
-- Patient safety checks
-- Compliance risks
+            Based on this protocol, generate a Monitoring Visit Checklist including:
+            - Critical data points
+            - High-risk areas
+            - SDV priorities
+            - Patient safety checks
+            - Compliance risks
 
-Protocol:
-{text}
-"""
+            Protocol:
+            {text}
+            """
 
             checklist_response = client.chat.completions.create(
                 model="gpt-4o-mini",
