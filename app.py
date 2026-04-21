@@ -592,6 +592,7 @@ if st.session_state.analysis_result:
                     st.markdown("• No activities extracted")
 
 
+
     else:
         st.write("No visit schedule extracted.")
 
