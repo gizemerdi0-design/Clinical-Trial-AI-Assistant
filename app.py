@@ -576,15 +576,15 @@ if st.session_state.analysis_result:
                 if activities:
                     for act in activities:
                         st.markdown(f"""
-            <div style="
-                background-color:#eef2ff;
-                padding:8px 10px;
-                border-radius:8px;
-                margin-bottom:6px;
-            ">
-                • {act}
-            </div>
-             """, unsafe_allow_html=True)
+                        <div style='
+                            background-color:#eef2ff;
+                            padding:8px 10px;
+                            border-radius:8px;
+                            margin-bottom:6px;
+                        '>
+                        • {act}
+                        </div>
+                        """, unsafe_allow_html=True)
                  else:
                      st.markdown("• No activities extracted")
 
